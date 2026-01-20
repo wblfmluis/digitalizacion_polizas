@@ -11,7 +11,7 @@ export class UsersController {
   }
 
   @Post()
-  async createUser(@Request() req: any): Promise<string> {
+  async createUser(@Request() req: any): Promise<Record<string, any>> {
     const { email, password } = req.body;
     return await this.usersService.createUser(email, password);
   }

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { Client, Users, ID, Models, Query } from 'node-appwrite'; // Importamos Query y Models
 
 @Injectable()
@@ -37,6 +37,11 @@ export class AppwriteService {
         name || email,
       );
     } catch (error) {
+      if (error.code === 409) {
+        throw new ConflictException({
+          message: 'El usuario con este email ya existe',
+        });
+      }
       this.logger.error(`Error creating user: ${error.message}`);
       throw error;
     }

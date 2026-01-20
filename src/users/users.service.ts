@@ -7,9 +7,14 @@ export class UsersService {
 
   constructor(private readonly appwrite: AppwriteService) {}
 
-  async createUser(email: string, password: string): Promise<string> {
+  async createUser(
+    email: string,
+    password: string,
+  ): Promise<Record<string, any>> {
     const response = await this.appwrite.createUser(email, password);
-    return response.$id;
+    return {
+      userId: response.$id,
+    };
   }
 
   async findOne(userId: string) {
