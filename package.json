@@ -25,10 +25,12 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "drizzle-orm": "^0.45.1",
+    "drizzle-zod": "^0.8.3",
     "mysql2": "^3.16.0",
     "node-appwrite": "^16.0.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
