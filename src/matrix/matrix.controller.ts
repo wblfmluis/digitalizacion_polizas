@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Param,
   ParseIntPipe,
   Post,
@@ -124,5 +125,10 @@ export class MatrixController {
     @Body() data: Record<string, any>,
   ) {
     return this.matrixService.updateMatrix(id, data, user, file);
+  }
+
+  @Get('/:id')
+  async getMatrixById(@Param('id', ParseIntPipe) id: number) {
+    return this.matrixService.getMatrixById(id);
   }
 }

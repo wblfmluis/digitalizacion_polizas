@@ -189,6 +189,22 @@ export class MatrixService {
     file?: Express.Multer.File,
   ) {
     try {
+      let conf_db_to_xls = '';
+      let conf_xls_to_db = '';
+      if (data.conf_db_to_xls) {
+        conf_db_to_xls = data.conf_db_to_xls;
+        delete data.conf_db_to_xls;
+        data.conf_db_to_xls = JSON.parse(conf_db_to_xls);
+      }
+      if (data.conf_xls_to_db) {
+        conf_xls_to_db = data.conf_xls_to_db;
+        delete data.conf_xls_to_db;
+        data.conf_xls_to_db = JSON.parse(conf_xls_to_db);
+      }
+
+      delete data.conf_db_to_xls;
+      delete data.conf_xls_to_db;
+
       if (!file || !file?.buffer) {
         return this.db
           .update(schema.matriz)
