@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   ParseIntPipe,
+  Delete,
 } from '@nestjs/common';
 import { CatalogService } from './catalog.service';
 import * as ejercicioDto from './dto/ejercicio.dto';
@@ -38,6 +39,14 @@ export class CatalogController {
     @UserCookie() user: string,
   ) {
     return this.catalogService.updateEjercicio(id, data, user);
+  }
+
+  @Delete('ejercicio/:id')
+  async deleteEjercicio(
+    @Param('id', ParseIntPipe) id: number,
+    @UserCookie() user: string,
+  ) {
+    return this.catalogService.deleteEjercicio(id, user);
   }
 
   @Get('tipo-accion')

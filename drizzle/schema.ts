@@ -149,8 +149,11 @@ export const matriz = mysqlTable(
   {
     id: int().autoincrement().notNull(),
     idejercicio: int().references(() => cEjercicio.id),
-    configuracionCampos: json('configuracion_campos'),
+    nombre: varchar({ length: 100 }),
+    confDbToXls: json('conf_db_to_xls'),
+    confXlsToDb: json('conf_xls_to_db'),
     bucketId: varchar('bucket_id', { length: 100 }),
+    fileId: varchar('file_id', { length: 100 }),
     status: tinyint().default(1),
     createdAt: datetime('created_at', { mode: 'string' }).default(
       sql`(CURRENT_TIMESTAMP)`,

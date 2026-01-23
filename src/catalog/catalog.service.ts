@@ -41,6 +41,17 @@ export class CatalogService {
       .where(eq(schema.cEjercicio.id, id));
   }
 
+  async deleteEjercicio(id: number, user: string) {
+    return this.db
+      .update(schema.cEjercicio)
+      .set({
+        deletedAt: new Date().toISOString(),
+        deletedBy: user,
+        status: 0,
+      })
+      .where(eq(schema.cEjercicio.id, id));
+  }
+
   async findAllTipoAccion() {
     return this.db.select().from(schema.cTipoAccion);
   }

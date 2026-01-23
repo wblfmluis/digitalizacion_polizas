@@ -4,6 +4,7 @@ import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './users/users.module';
 import { AppwriteModule } from './appwrite/appwrite.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { MatrixModule } from './matrix/matrix.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { CatalogModule } from './catalog/catalog.module';
     UsersModule,
     AppwriteModule,
     CatalogModule,
+    MatrixModule,
   ],
   controllers: [],
   providers: [],

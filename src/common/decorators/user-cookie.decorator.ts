@@ -7,10 +7,23 @@ export const UserCookie = createParamDecorator(
     open_cookie = request.cookies['appwrite-user-session'] || 'system';
     if (open_cookie.decoded_jwt) {
       return open_cookie.decoded_jwt.userId;
+    } else {
+      return 'system';
     }
   },
 );
 
+export const UserJwt = createParamDecorator(
+  (open_cookie: AppwriteSession, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    open_cookie = request.cookies['appwrite-user-session'] || 'system';
+    if (open_cookie.jwt) {
+      return open_cookie.jwt;
+    } else {
+      return 'system';
+    }
+  },
+);
 export interface AppwriteDecodedJwt {
   userId: string;
   sessionId: string;
