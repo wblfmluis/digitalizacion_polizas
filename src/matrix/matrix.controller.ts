@@ -94,7 +94,7 @@ export class MatrixController {
     return this.matrixService.createMatrix(data, file, user, jwt);
   }
 
-  @Put()
+  @Put('/:id')
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB

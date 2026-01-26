@@ -8,7 +8,7 @@ import {
 import { DRIZZLE } from '../database/database.module';
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import * as schema from '../../drizzle/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import * as xlsx from 'xlsx';
 import { AppwriteService } from '../appwrite/appwrite.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -189,28 +189,34 @@ export class MatrixService {
     file?: Express.Multer.File,
   ) {
     try {
-      let conf_db_to_xls = '';
-      let conf_xls_to_db = '';
       if (data.conf_db_to_xls) {
-        conf_db_to_xls = data.conf_db_to_xls;
+        data.confDbToXls = data.conf_db_to_xls;
         delete data.conf_db_to_xls;
-        data.conf_db_to_xls = JSON.parse(conf_db_to_xls);
       }
       if (data.conf_xls_to_db) {
-        conf_xls_to_db = data.conf_xls_to_db;
+        data.confXlsToDb = data.conf_xls_to_db;
         delete data.conf_xls_to_db;
-        data.conf_xls_to_db = JSON.parse(conf_xls_to_db);
       }
-
-      delete data.conf_db_to_xls;
-      delete data.conf_xls_to_db;
-
+      /*
+      const json_conf_db_to_xls = {
+        1: 'POLIZA',
+        2: 'TIPO',
+        3: 'FECHA',
+        4: 'CONCEPTO',
+        5: 'DESCRIPCION',
+        6: 'CUENTA CONTABLE',
+        7: 'REFERENCIAS',
+        8: 'CARGOS',
+        9: 'ABONOS',
+      };
+      data.confDbToXls = JSON.stringify(json_conf_db_to_xls);
+       */
       if (!file || !file?.buffer) {
         return this.db
           .update(schema.matriz)
           .set({
             ...data,
-            updatedAt: new Date().toISOString(),
+            updatedAt: sql`(CURRENT_TIMESTAMP)`,
             updatedBy: user,
           })
           .where(eq(schema.matriz.id, id));
@@ -235,6 +241,16 @@ export class MatrixService {
           matrix.bucketId,
           file.mimetype,
         );
+        return this.db
+          .update(schema.matriz)
+          .set({
+            ...data,
+            fileId: saveToAppwrite.$id,
+            bucketId: matrix.bucketId,
+            updatedAt: sql`(CURRENT_TIMESTAMP)`,
+            updatedBy: user,
+          })
+          .where(eq(schema.matriz.id, id));
       }
     } catch (e) {
       this.logger.error(
@@ -282,10 +298,46 @@ export class MatrixService {
       matriz.fileId,
     );
     const result: Record<string, any> = matriz;
+    if (result.confDbToXls) result.confDbToXls = JSON.parse(result.confDbToXls);
+    if (result.confXlsToDb) result.confXlsToDb = JSON.parse(result.confXlsToDb);
     result.c_ejercicio = c_ejercicio;
     result.excel_headers = excel_headers;
     return result;
   }
+
+  async procesar_polizas(idmatriz: number) {
+    try {
+      const matriz = await this.getMatrixById(idmatriz);
+      const campos_sistema = await this.db
+        .select({
+          id: schema.cCamposSistema.id,
+          nombreBd: schema.cCamposSistema.nombreBd,
+        })
+        .from(schema.cCamposSistema);
+      const maped_header = createDbXlsxFields(
+        campos_sistema,
+        matriz.confDbToXls,
+      );
+      this.logger.log('Generando mapeo de campos');
+      return maped_header;
+    } catch (e) {
+      this.logger.error('Error al procesar las pólizas: ' + e.message);
+    }
+  }
+}
+
+function createDbXlsxFields(
+  db_headers: Record<string, any>[],
+  xlsx_headers_config: Record<string, any>,
+) {
+  const maped_headers: Record<string, any> = {};
+  for (const db_header of db_headers) {
+    if (db_header.id.toString() in xlsx_headers_config) {
+      maped_headers[db_header.nombreBd] =
+        xlsx_headers_config[db_header.id.toString()];
+    }
+  }
+  return maped_headers;
 }
 
 function normalizeString(value: string): string {

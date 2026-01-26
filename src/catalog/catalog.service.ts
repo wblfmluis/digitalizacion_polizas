@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { DRIZZLE } from '../database/database.module';
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import * as schema from '../../drizzle/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { CreateEjercicioDto, UpdateEjercicioDto } from './dto/ejercicio.dto';
 import {
   CreateTipoAccionDto,
@@ -35,7 +35,7 @@ export class CatalogService {
       .update(schema.cEjercicio)
       .set({
         ...data,
-        updatedAt: new Date().toISOString(),
+        updatedAt: sql`(CURRENT_TIMESTAMP)`,
         updatedBy: user,
       })
       .where(eq(schema.cEjercicio.id, id));
@@ -45,7 +45,7 @@ export class CatalogService {
     return this.db
       .update(schema.cEjercicio)
       .set({
-        deletedAt: new Date().toISOString(),
+        deletedAt: sql`(CURRENT_TIMESTAMP)`,
         deletedBy: user,
         status: 0,
       })
@@ -67,7 +67,7 @@ export class CatalogService {
       .update(schema.cTipoAccion)
       .set({
         ...data,
-        updatedAt: new Date().toISOString(),
+        updatedAt: sql`(CURRENT_TIMESTAMP)`,
         updatedBy: user,
       })
       .where(eq(schema.cTipoAccion.id, id));
@@ -89,7 +89,7 @@ export class CatalogService {
       .update(schema.entidad)
       .set({
         ...data,
-        updatedAt: new Date().toISOString(),
+        updatedAt: sql`(CURRENT_TIMESTAMP)`,
         updatedBy: user,
       })
       .where(eq(schema.entidad.id, id));
@@ -115,7 +115,7 @@ export class CatalogService {
       .update(schema.cCamposSistema)
       .set({
         ...data,
-        updatedAt: new Date().toISOString(),
+        updatedAt: sql`(CURRENT_TIMESTAMP)`,
         updatedBy: user,
       })
       .where(eq(schema.cCamposSistema.id, id));
