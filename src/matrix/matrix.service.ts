@@ -267,7 +267,7 @@ export class MatrixService {
     if (!row) {
       throw new NotFoundException(`Matriz ${id} no encontrada`);
     }
-    const { matriz } = row;
+    const { matriz, c_ejercicio } = row;
     if (!matriz.bucketId || !matriz.fileId) {
       throw new BadRequestException(
         `La matriz ${id} no tiene bucketId asignado`,
@@ -278,6 +278,7 @@ export class MatrixService {
       matriz.fileId,
     );
     const result: Record<string, any> = matriz;
+    result.c_ejercicio = c_ejercicio;
     result.excel_headers = excel_headers;
     return result;
   }
