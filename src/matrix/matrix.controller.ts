@@ -131,4 +131,9 @@ export class MatrixController {
   async getMatrixById(@Param('id', ParseIntPipe) id: number) {
     return this.matrixService.getMatrixById(id);
   }
+
+  @Get()
+  async getMatrix(@UserCookie() user: string) {
+    return this.matrixService.getMatrix(user);
+  }
 }

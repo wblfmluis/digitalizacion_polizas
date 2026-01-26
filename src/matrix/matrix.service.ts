@@ -248,6 +248,10 @@ export class MatrixService {
     return this.db
       .select()
       .from(schema.matriz)
+      .innerJoin(
+        schema.cEjercicio,
+        eq(schema.matriz.idejercicio, schema.cEjercicio.id),
+      )
       .where(
         and(eq(schema.matriz.createdBy, user), eq(schema.matriz.status, 1)),
       );
