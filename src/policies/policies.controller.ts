@@ -11,12 +11,18 @@ export class PoliciesController {
 
   @Get()
   async getPolicies(
-    @Query('idejercicio', ParseIntPipe) idejercicio: number,
-    @Query('idmatriz', ParseIntPipe) idmatriz: number,
     @UserCookie() user: string,
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
+    @Query('offset') offset: string,
+    @Query('idejercicio') idejercicio?: string,
+    @Query('idmatriz') idmatriz?: string,
   ) {
     return this.policiesService.getPolicies(
       {
+        page: page,
+        pageSize: pageSize,
+        offset: offset,
         idejercicio: idejercicio,
         idmatriz: idmatriz,
       },

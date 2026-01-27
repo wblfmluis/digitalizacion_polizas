@@ -334,28 +334,30 @@ export class MatrixService {
       const row = rows[i];
       const identificador = row[confDbToXls['10']] ?? '';
       let nomenclatura = '';
-      if (!identificador) {
-        nomenclatura =
-          String(row[confDbToXls['1']] ?? '').trim() +
-          '_' +
-          dateForName(
-            normalizeToMySqlDate(row[confDbToXls['3']], {
-              preferDayFirst: false,
-              fieldName: 'fecha',
-            }),
-          );
-      } else {
-        nomenclatura =
-          String(row[confDbToXls['1']] ?? '').trim() +
-          '_' +
-          dateForName(
-            normalizeToMySqlDate(row[confDbToXls['3']], {
-              preferDayFirst: false,
-              fieldName: 'fecha',
-            }),
-          ) +
-          '_' +
-          identificador;
+      if (row[confDbToXls['3']] && row[confDbToXls['1']]) {
+        if (!identificador) {
+          nomenclatura =
+            String(row[confDbToXls['1']] ?? '').trim() +
+            '_' +
+            dateForName(
+              normalizeToMySqlDate(row[confDbToXls['3']], {
+                preferDayFirst: false,
+                fieldName: 'fecha',
+              }),
+            );
+        } else {
+          nomenclatura =
+            String(row[confDbToXls['1']] ?? '').trim() +
+            '_' +
+            dateForName(
+              normalizeToMySqlDate(row[confDbToXls['3']], {
+                preferDayFirst: false,
+                fieldName: 'fecha',
+              }),
+            ) +
+            '_' +
+            identificador;
+        }
       }
       try {
         const mapped: PolizaInsert = {
