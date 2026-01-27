@@ -118,13 +118,12 @@ export class MatrixController {
     }),
   )
   updateMatrix(
-    @UploadedFile() file: Express.Multer.File,
     @Param('id', ParseIntPipe) id: number,
     @UserJwt() jwt: string,
     @UserCookie() user: string,
     @Body() data: Record<string, any>,
   ) {
-    return this.matrixService.updateMatrix(id, data, user, file);
+    return this.matrixService.updateMatrix(id, data, user);
   }
 
   @Get('/:id')
@@ -135,5 +134,10 @@ export class MatrixController {
   @Get()
   async getMatrix(@UserCookie() user: string) {
     return this.matrixService.getMatrix(user);
+  }
+
+  @Get('procesar-polizas/:id')
+  async procesarPolizas(@Param('id', ParseIntPipe) id: number) {
+    return this.matrixService.procesar_polizas(id);
   }
 }

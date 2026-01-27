@@ -175,6 +175,7 @@ export const poliza = mysqlTable(
     id: int().autoincrement().notNull(),
     idejercicio: int().references(() => cEjercicio.id),
     identidad: int().references(() => entidad.id),
+    idmatriz: int().references(() => matriz.id),
     idproveedor: int(),
     idarchivoMetadata: int('idarchivo_metadata').references(
       () => archivoMetadata.id,
@@ -188,8 +189,10 @@ export const poliza = mysqlTable(
     descripcion: text(),
     cuentaContable: varchar('cuenta_contable', { length: 100 }),
     referencia: varchar({ length: 100 }),
-    cargo: decimal({ precision: 10, scale: 2 }),
-    abono: decimal({ precision: 10, scale: 2 }),
+    cargo: decimal({ precision: 18, scale: 2 }).notNull(),
+    abono: decimal({ precision: 18, scale: 2 }).notNull(),
+    nomenclatura: varchar({ length: 500 }),
+    identificador: varchar({ length: 20 }),
     status: tinyint().default(1),
     createdAt: datetime('created_at', { mode: 'string' }).default(
       sql`(CURRENT_TIMESTAMP)`,

@@ -27,6 +27,7 @@
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.1",
     "drizzle-zod": "^0.8.3",
+    "moment": "^2.30.1",
     "mysql2": "^3.16.0",
     "node-appwrite": "^16.0.0",
     "reflect-metadata": "^0.2.2",

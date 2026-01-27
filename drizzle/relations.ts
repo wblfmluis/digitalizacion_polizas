@@ -30,13 +30,18 @@ export const polizaRelations = relations(poliza, ({one, many}) => ({
 		fields: [poliza.identidad],
 		references: [entidad.id]
 	}),
+	matriz: one(matriz, {
+		fields: [poliza.idmatriz],
+		references: [matriz.id]
+	}),
 }));
 
-export const matrizRelations = relations(matriz, ({one}) => ({
+export const matrizRelations = relations(matriz, ({one, many}) => ({
 	cEjercicio: one(cEjercicio, {
 		fields: [matriz.idejercicio],
 		references: [cEjercicio.id]
 	}),
+	polizas: many(poliza),
 }));
 
 export const cEjercicioRelations = relations(cEjercicio, ({many}) => ({
