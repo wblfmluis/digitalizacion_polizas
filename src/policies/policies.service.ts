@@ -149,12 +149,19 @@ export class PoliciesService {
               size: file.size,
               fileId: saveToAppwrite.$id,
             };
-            const insert_file_metadata = await this.db
+            const [insert_file_metadata, value] = await this.db
               .insert(schema.archivoMetadata)
               .values(file_to_insert);
-            return {
-              message: 'Archivo subido con éxito',
-            };
+            const inserted_object: Record<string, any> = insert_file_metadata;
+            if (insert_file_metadata) {
+              const inserted_id = inserted_object.insertId;
+              if (inserted_id) {
+                const [update_poliza, value] = await this.db
+                  .update(schema.poliza)
+                  .set({ idarchivoMetadata: inserted_id })
+                  .where(eq(schema.poliza.id, db_policie_row.id));
+              }
+            }
           } else {
             throw new BadRequestException({
               message: 'No hay bucketId asignado a la matriz',
@@ -166,6 +173,14 @@ export class PoliciesService {
           });
         }
       }
+    }
+    if (db_policie.length !== 0) {
+      return { message: 'Archivo cargado con éxito' };
+    } else {
+      throw new BadRequestException({
+        message:
+          'No se encontro una poliza compatible con el nombre del archivo',
+      });
     }
   }
 
