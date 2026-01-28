@@ -14,6 +14,7 @@ import { AppwriteService } from '../appwrite/appwrite.service';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { dateForName, normalizeToMySqlDate } from '../utils/date';
+import { PoliciesService } from '../policies/policies.service';
 
 @Injectable()
 export class MatrixService {
@@ -21,6 +22,7 @@ export class MatrixService {
   constructor(
     @Inject(DRIZZLE) private db: MySql2Database<typeof schema>,
     private readonly appwriteService: AppwriteService,
+    private readonly policiesService: PoliciesService,
   ) {}
   getExcelHeadersFromBuffer(buffer: Buffer): string[] {
     if (!buffer?.length) {
@@ -186,7 +188,7 @@ export class MatrixService {
 
   async updateMatrix(id: number, data: Record<string, any>, user: string) {
     try {
-      return this.db
+      const updated = await this.db
         .update(schema.matriz)
         .set({
           ...data,
@@ -194,6 +196,10 @@ export class MatrixService {
           updatedBy: user,
         })
         .where(eq(schema.matriz.id, id));
+      if (data?.confDbToXls) {
+        await this.procesar_polizas(id);
+      }
+      return updated;
     } catch (e) {
       this.logger.error(
         e instanceof Error ? e.message : 'Unknown error occurred',
@@ -242,6 +248,9 @@ export class MatrixService {
     const result: Record<string, any> = matriz;
     result.c_ejercicio = c_ejercicio;
     result.excel_headers = excel_headers;
+    result.resumenPolizas = await this.policiesService.getPolizasStats({
+      idmatriz: id,
+    });
     return result;
   }
 

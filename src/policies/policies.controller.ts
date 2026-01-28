@@ -17,6 +17,7 @@ export class PoliciesController {
     @Query('offset') offset: string,
     @Query('idejercicio') idejercicio?: string,
     @Query('idmatriz') idmatriz?: string,
+    @Query('archivo') archivo?: string,
   ) {
     return this.policiesService.getPolicies(
       {
@@ -25,8 +26,24 @@ export class PoliciesController {
         offset: offset,
         idejercicio: idejercicio,
         idmatriz: idmatriz,
+        archivo: archivo,
       },
       user,
     );
+  }
+
+  @Get('stats')
+  async getPoliciesStats(
+    @Query('idejercicio') idejercicio?: string,
+    @Query('idmatriz') idmatriz?: string,
+    @Query('fechaFrom') fechaFrom?: string,
+    @Query('fechaTo') fechaTo?: string,
+  ) {
+    return this.policiesService.getPolizasStats({
+      idejercicio,
+      idmatriz,
+      fechaFrom,
+      fechaTo,
+    });
   }
 }
