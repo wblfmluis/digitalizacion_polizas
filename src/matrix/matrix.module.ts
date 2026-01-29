@@ -4,10 +4,11 @@ import { MatrixService } from './matrix.service';
 import { DatabaseModule } from '../database/database.module';
 import { AppwriteService } from '../appwrite/appwrite.service';
 import { PoliciesService } from '../policies/policies.service';
+import { EventosService } from '../eventos/eventos.service';
 
 @Module({
   imports: [DatabaseModule],
   controllers: [MatrixController],
-  providers: [MatrixService, AppwriteService, PoliciesService],
+  providers: [MatrixService, AppwriteService, PoliciesService, EventosService],
 })
 export class MatrixModule {}

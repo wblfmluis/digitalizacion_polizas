@@ -23,6 +23,7 @@ import {
   or,
 } from 'drizzle-orm';
 import { AppwriteService } from '../appwrite/appwrite.service';
+import { EventosService } from '../eventos/eventos.service';
 import path from 'node:path';
 import { normalizeToMySqlDate } from '../utils/date';
 import type { Response } from 'express';
@@ -60,6 +61,7 @@ export class PoliciesService {
   constructor(
     @Inject(DRIZZLE) private db: MySql2Database<typeof schema>,
     private readonly appwriteService: AppwriteService,
+    private readonly eventosService: EventosService,
   ) {}
 
   async getPolicies(params: Record<string, any>, user: string) {
@@ -124,6 +126,14 @@ export class PoliciesService {
         .then((r) => r[0]),
     ]);
     const total = Number(totalRow?.total ?? 0);
+    await this.eventosService.logEvent(
+      {
+        idcTipoAccion: 3,
+        filtros: params,
+        usuario: user,
+      },
+      user,
+    );
     return {
       items,
       meta: {
@@ -187,6 +197,14 @@ export class PoliciesService {
                   .set({ idarchivoMetadata: inserted_id })
                   .where(eq(schema.poliza.id, db_policie_row.id));
               }
+              await this.eventosService.logEvent(
+                {
+                  idcTipoAccion: 4,
+                  idpoliza: db_policie_row.id,
+                  usuario: user,
+                },
+                user,
+              );
             }
           } else {
             throw new BadRequestException({
@@ -292,10 +310,22 @@ export class PoliciesService {
         eq(schema.poliza.idarchivoMetadata, schema.archivoMetadata.id),
       )
       .where(eq(schema.poliza.id, id));
+    await this.eventosService.logEvent(
+      {
+        idcTipoAccion: 1,
+        idpoliza: id,
+        usuario: user,
+      },
+      user,
+    );
     return row;
   }
 
-  async streamZipFromAppwriteFileIds(fileIds: string[], res: Response) {
+  async streamZipFromAppwriteFileIds(
+    fileIds: string[],
+    res: Response,
+    user: string,
+  ) {
     const uniqueFileIds = Array.from(
       new Set(fileIds.map((x) => String(x).trim()).filter(Boolean)),
     );
@@ -361,6 +391,7 @@ export class PoliciesService {
         const downloaded = await this.appwriteService.getFileForDownload(
           bucketId,
           fileId,
+          user,
         );
 
         const baseName =

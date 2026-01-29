@@ -6,6 +6,7 @@ import { AppwriteModule } from './appwrite/appwrite.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { MatrixModule } from './matrix/matrix.module';
 import { PoliciesModule } from './policies/policies.module';
+import { EventosModule } from './eventos/eventos.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PoliciesModule } from './policies/policies.module';
     CatalogModule,
     MatrixModule,
     PoliciesModule,
+    EventosModule,
   ],
   controllers: [],
   providers: [],

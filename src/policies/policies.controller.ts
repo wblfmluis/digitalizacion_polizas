@@ -105,10 +105,15 @@ export class PoliciesController {
   async downloadZipByFileIds(
     @Body('fileIds') fileIds: string[],
     @Res() res: Response,
+    @UserCookie() user: string,
   ) {
     if (!Array.isArray(fileIds) || fileIds.length === 0) {
       throw new BadRequestException('fileIds debe ser un arreglo no vacío');
     }
-    return this.policiesService.streamZipFromAppwriteFileIds(fileIds, res);
+    return this.policiesService.streamZipFromAppwriteFileIds(
+      fileIds,
+      res,
+      user,
+    );
   }
 }

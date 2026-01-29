@@ -129,6 +129,7 @@ export const logEventos = mysqlTable(
     id: int().autoincrement().notNull(),
     idcTipoAccion: int('idc_tipo_accion').references(() => cTipoAccion.id),
     idpoliza: int().references(() => poliza.id),
+    filtros: json(),
     usuario: varchar({ length: 150 }),
     status: tinyint().default(1),
     createdAt: datetime('created_at', { mode: 'string' }).default(

@@ -78,6 +78,7 @@ export class MatrixService {
       const appwriteFile = await this.appwriteService.getFileForDownload(
         bucketId,
         fileId,
+        'SYSTEM',
       );
       if (!appwriteFile.buffer?.length) {
         throw new BadRequestException('Archivo vacío o no recibido.');
@@ -270,6 +271,7 @@ export class MatrixService {
       const xlsx_buffer = await this.appwriteService.getFileForDownload(
         matriz.bucketId,
         matriz.fileId,
+        'SYSTEM',
       );
       this.logger.log('Generando mapeo de campos');
       return sheetRowsFromBuffer(xlsx_buffer.buffer);
@@ -319,6 +321,7 @@ export class MatrixService {
     const file = await this.appwriteService.getFileForDownload(
       matriz.bucketId,
       matriz.fileId,
+      'SYSTEM',
     );
     // 4) Leer filas
     const workbook = xlsx.read(file.buffer, { type: 'buffer' });

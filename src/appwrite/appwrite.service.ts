@@ -1,6 +1,11 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { Client, Users, ID, Models, Query, Storage } from 'node-appwrite'; // Importamos Query y Models
 import { InputFile } from 'node-appwrite/file';
+import { DRIZZLE } from '../database/database.module';
+import { MySql2Database } from 'drizzle-orm/mysql2';
+import * as schema from '../../drizzle/schema';
+import { eq, sql } from 'drizzle-orm';
+import { EventosService } from '../eventos/eventos.service';
 
 @Injectable()
 export class AppwriteService {
@@ -9,7 +14,10 @@ export class AppwriteService {
   private users: Users;
   private storage: Storage;
 
-  constructor() {
+  constructor(
+    @Inject(DRIZZLE) private db: MySql2Database<typeof schema>,
+    private readonly eventosService: EventosService,
+  ) {
     this.logger.log('Initializing Appwrite service...');
     this.logger.log('PROJECT_ID: ' + process.env.APPWRITE_PROJECT_ID);
 
@@ -156,6 +164,7 @@ export class AppwriteService {
   async getFileForDownload(
     bucketId: string,
     fileId: string,
+    user: string,
   ): Promise<{
     buffer: Buffer;
     filename: string;
@@ -167,7 +176,29 @@ export class AppwriteService {
 
       // Luego obtenemos el contenido del archivo
       const fileContent = await this.storage.getFileDownload(bucketId, fileId);
+      const [policie] = await this.db
+        .select()
+        .from(schema.archivoMetadata)
+        .innerJoin(
+          schema.poliza,
+          eq(schema.archivoMetadata.id, schema.poliza.idarchivoMetadata),
+        )
+        .where(eq(schema.archivoMetadata.fileId, fileId));
 
+      let idpoliza = 0;
+      if (user !== 'SYSTEM') {
+        if (policie) {
+          idpoliza = policie.poliza.id;
+        }
+        await this.eventosService.logEvent(
+          {
+            idcTipoAccion: 2,
+            idpoliza: idpoliza,
+            usuario: user,
+          },
+          user,
+        );
+      }
       return {
         buffer: Buffer.from(fileContent),
         filename: fileInfo.name,
