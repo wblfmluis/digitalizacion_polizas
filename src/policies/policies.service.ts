@@ -27,6 +27,7 @@ import path from 'node:path';
 import { normalizeToMySqlDate } from '../utils/date';
 import type { Response } from 'express';
 import archiver from 'archiver';
+import { PDFDocument } from 'pdf-lib';
 
 const mxn = new Intl.NumberFormat('es-MX', {
   style: 'currency',
@@ -165,12 +166,14 @@ export class PoliciesService {
               bucketId,
               file.mimetype,
             );
+            const pages = await count_pdf_pages(file.buffer);
             const file_to_insert = {
               nombre: original_file_name,
               mimetype: file.mimetype,
               size: file.size,
               fileId: saveToAppwrite.$id,
               bucketId: bucketId,
+              paginas: pages,
             };
             const [insert_file_metadata, value] = await this.db
               .insert(schema.archivoMetadata)
@@ -434,4 +437,13 @@ function makeUniqueZipName(original: string, used: Map<string, number>) {
   const next = current + 1;
   used.set(original, next);
   return `${base} (${next})${ext}`;
+}
+
+async function count_pdf_pages(
+  pdf_buffer: string | ArrayBuffer | Uint8Array<ArrayBufferLike>,
+) {
+  const pdfDoc = await PDFDocument.load(pdf_buffer, {
+    ignoreEncryption: true,
+  });
+  return pdfDoc.getPageCount();
 }
