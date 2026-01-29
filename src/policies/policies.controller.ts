@@ -2,11 +2,14 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Param,
   ParseIntPipe,
   Post,
   Query,
   UploadedFile,
   UseInterceptors,
+  Body,
+  Res,
 } from '@nestjs/common';
 import { PoliciesService } from './policies.service';
 import {
@@ -14,7 +17,7 @@ import {
   UserCookie,
 } from '../common/decorators/user-cookie.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { Express } from 'express';
+import type { Express, Response } from 'express';
 
 @Controller('policies')
 export class PoliciesController {
@@ -29,6 +32,7 @@ export class PoliciesController {
     @Query('idejercicio') idejercicio?: string,
     @Query('idmatriz') idmatriz?: string,
     @Query('archivo') archivo?: string,
+    @Query('busqueda') q?: string,
   ) {
     return this.policiesService.getPolicies(
       {
@@ -38,6 +42,7 @@ export class PoliciesController {
         idejercicio: idejercicio,
         idmatriz: idmatriz,
         archivo: archivo,
+        q: q,
       },
       user,
     );
@@ -89,5 +94,21 @@ export class PoliciesController {
       );
     }
     return this.policiesService.uploadPolicieFile(file, user, jwt);
+  }
+
+  @Get('/:id')
+  async policieDetail(@Param('id') id: number, @UserCookie() user: string) {
+    return this.policiesService.policieDetail(id, user);
+  }
+
+  @Post('files/zip')
+  async downloadZipByFileIds(
+    @Body('fileIds') fileIds: string[],
+    @Res() res: Response,
+  ) {
+    if (!Array.isArray(fileIds) || fileIds.length === 0) {
+      throw new BadRequestException('fileIds debe ser un arreglo no vacío');
+    }
+    return this.policiesService.streamZipFromAppwriteFileIds(fileIds, res);
   }
 }

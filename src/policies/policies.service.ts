@@ -20,10 +20,13 @@ import {
   desc,
   isNotNull,
   isNull,
+  or,
 } from 'drizzle-orm';
 import { AppwriteService } from '../appwrite/appwrite.service';
 import path from 'node:path';
 import { normalizeToMySqlDate } from '../utils/date';
+import type { Response } from 'express';
+import archiver from 'archiver';
 
 const mxn = new Intl.NumberFormat('es-MX', {
   style: 'currency',
@@ -59,7 +62,7 @@ export class PoliciesService {
   ) {}
 
   async getPolicies(params: Record<string, any>, user: string) {
-    const { idejercicio, idmatriz, archivo } = params;
+    const { idejercicio, idmatriz, archivo, q } = params;
     const { page, pageSize, offset } = normalizePagination(params);
 
     const conditions: SQL[] = [];
@@ -78,6 +81,25 @@ export class PoliciesService {
         conditions.push(isNull(schema.poliza.idarchivoMetadata));
       }
     }
+    const qTrim = typeof q === 'string' ? q.trim() : '';
+    if (qTrim.length > 0) {
+      const pattern = `%${escapeLike(qTrim)}%`;
+
+      const searchCondition = or(
+        like(schema.poliza.numero, pattern),
+        like(schema.poliza.tipo, pattern),
+        like(schema.poliza.concepto, pattern),
+        like(schema.poliza.descripcion, pattern),
+        like(schema.poliza.cuentaContable, pattern),
+        like(schema.poliza.referencia, pattern),
+        like(schema.poliza.nomenclatura, pattern),
+      );
+
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
+    }
+
     const where = conditions.length ? and(...conditions) : sql`true`;
 
     const [items, totalRow] = await Promise.all([
@@ -148,6 +170,7 @@ export class PoliciesService {
               mimetype: file.mimetype,
               size: file.size,
               fileId: saveToAppwrite.$id,
+              bucketId: bucketId,
             };
             const [insert_file_metadata, value] = await this.db
               .insert(schema.archivoMetadata)
@@ -251,6 +274,116 @@ export class PoliciesService {
       sumaAbonosFm: mxn.format(Number(row?.sumaAbonos ?? 0)),
     };
   }
+
+  async policieDetail(id: number, user: string) {
+    const [row] = await this.db
+      .select()
+      .from(schema.poliza)
+      .innerJoin(
+        schema.cEjercicio,
+        eq(schema.poliza.idejercicio, schema.cEjercicio.id),
+      )
+      .innerJoin(schema.matriz, eq(schema.poliza.idmatriz, schema.matriz.id))
+      .leftJoin(
+        schema.archivoMetadata,
+        eq(schema.poliza.idarchivoMetadata, schema.archivoMetadata.id),
+      )
+      .where(eq(schema.poliza.id, id));
+    return row;
+  }
+
+  async streamZipFromAppwriteFileIds(fileIds: string[], res: Response) {
+    const uniqueFileIds = Array.from(
+      new Set(fileIds.map((x) => String(x).trim()).filter(Boolean)),
+    );
+
+    if (uniqueFileIds.length === 0) {
+      throw new BadRequestException('No se recibieron fileIds válidos');
+    }
+
+    // 1) Buscar metadata en BD (para bucketId/nombre)
+    const metas = await this.db
+      .select({
+        fileId: schema.archivoMetadata.fileId,
+        bucketId: schema.archivoMetadata.bucketId,
+        nombre: schema.archivoMetadata.nombre,
+        mimetype: schema.archivoMetadata.mimetype,
+      })
+      .from(schema.archivoMetadata)
+      .where(inArray(schema.archivoMetadata.fileId, uniqueFileIds));
+
+    if (!metas.length) {
+      throw new NotFoundException(
+        'No se encontraron archivos para esos fileIds',
+      );
+    }
+
+    // 2) Preparar headers de descarga
+    const zipName = `archivos_${new Date().toISOString().slice(0, 10)}.zip`;
+    res.status(200);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
+
+    // 3) Crear zip y streamearlo al response
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    archive.on('warning', (err) => {
+      // Warnings no siempre rompen
+      this.logger.warn(`archiver warning: ${err?.message ?? String(err)}`);
+    });
+
+    archive.on('error', (err) => {
+      this.logger.error('archiver error', err.stack);
+      // Si truena el zip, cerramos la respuesta
+      try {
+        res.status(500).end();
+      } catch {
+        // ignore
+      }
+    });
+
+    archive.pipe(res);
+
+    // Para evitar nombres duplicados dentro del ZIP
+    const usedNames = new Map<string, number>();
+
+    // 4) Descargar de Appwrite y agregar al ZIP
+    for (const meta of metas) {
+      try {
+        const bucketId = meta.bucketId;
+        const fileId = meta.fileId;
+
+        if (!bucketId || !fileId) continue;
+
+        const downloaded = await this.appwriteService.getFileForDownload(
+          bucketId,
+          fileId,
+        );
+
+        const baseName =
+          meta.nombre && String(meta.nombre).trim()
+            ? String(meta.nombre).trim()
+            : fileId;
+        const safeName = makeUniqueZipName(baseName, usedNames);
+
+        // Agrega como Buffer (para muchos archivos grandes, lo ideal es stream, pero depende de tu AppwriteService)
+        archive.append(downloaded.buffer, {
+          name: safeName,
+        });
+      } catch (e: any) {
+        // Si un archivo falla, puedes:
+        // - Omitirlo y continuar (lo hago aquí)
+        // - O abortar todo (depende del negocio)
+        this.logger.warn(
+          `No se pudo agregar un archivo al ZIP: ${e?.message ?? String(e)}`,
+        );
+        continue;
+      }
+    }
+
+    // 5) Finalizar zip
+    await archive.finalize();
+  }
 }
 
 type Pagination = { page?: number; pageSize?: number };
@@ -278,4 +411,27 @@ function normalizeString(value: string): string {
     .replace(/^_+|_+$/g, ''); // quita _ al inicio/fin
 
   return `${normalizedBase}${extension}`;
+}
+
+function escapeLike(input: string) {
+  // Escapa caracteres especiales de LIKE: \ % _
+  // MySQL: el caracter de escape por defecto puede variar; este enfoque suele ser suficiente
+  // para evitar que el usuario inyecte comodines involuntarios.
+  return input.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
+function makeUniqueZipName(original: string, used: Map<string, number>) {
+  const parsed = path.parse(original);
+  const base = parsed.name || original;
+  const ext = parsed.ext || '';
+
+  const current = used.get(original) ?? 0;
+  if (current === 0) {
+    used.set(original, 1);
+    return original;
+  }
+
+  const next = current + 1;
+  used.set(original, next);
+  return `${base} (${next})${ext}`;
 }

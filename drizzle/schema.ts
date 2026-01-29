@@ -23,6 +23,7 @@ export const archivoMetadata = mysqlTable(
     nombre: varchar({ length: 150 }),
     mimetype: varchar({ length: 50 }),
     size: int(),
+    bucketId: varchar('bucket_id', { length: 100 }),
     fileId: varchar('file_id', { length: 100 }).notNull(),
     paginas: int(),
     status: tinyint().default(1),
