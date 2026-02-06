@@ -147,12 +147,20 @@ export class MatrixService {
         file.mimetype,
       );
       if (saveToAppwrite?.$id) {
+        const excel_headers = await this.getExcelHeadersFromAppwrite(
+          bucketId,
+          saveToAppwrite.$id,
+        );
+        const xlsx_headers = {
+          headers: excel_headers,
+        };
         const [insert_matrix, value] = await this.db
           .insert(schema.matriz)
           .values({
             ...data,
             bucketId: bucketId,
             fileId: saveToAppwrite.$id,
+            excelHeaders: xlsx_headers,
             createdBy: user,
           });
         const inserted_object: Record<string, any> = insert_matrix;
@@ -170,10 +178,6 @@ export class MatrixService {
           .from(schema.matriz)
           .where(eq(schema.matriz.id, inserted_id));
 
-        const excel_headers = await this.getExcelHeadersFromAppwrite(
-          bucketId,
-          saveToAppwrite.$id,
-        );
         return {
           matriz: matrizInsertada,
           excel_headers: excel_headers,
@@ -242,16 +246,14 @@ export class MatrixService {
         `La matriz ${id} no tiene bucketId asignado`,
       );
     }
-    const excel_headers = await this.getExcelHeadersFromAppwrite(
-      matriz.bucketId,
-      matriz.fileId,
-    );
     const result: Record<string, any> = matriz;
     result.c_ejercicio = c_ejercicio;
-    result.excel_headers = excel_headers;
+    const headers: Record<string, any> = result.excelHeaders;
+    if (headers) result.excelHeaders = headers.headers;
     result.resumenPolizas = await this.policiesService.getPolizasStats({
       idmatriz: id,
     });
+
     return result;
   }
 

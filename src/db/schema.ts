@@ -154,6 +154,7 @@ export const matriz = mysqlTable(
     nombre: varchar({ length: 100 }),
     confDbToXls: json('conf_db_to_xls'),
     confXlsToDb: json('conf_xls_to_db'),
+    excelHeaders: json('excel_headers'),
     bucketId: varchar('bucket_id', { length: 100 }),
     fileId: varchar('file_id', { length: 100 }),
     status: tinyint().default(1),
