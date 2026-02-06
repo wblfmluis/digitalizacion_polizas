@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -139,5 +140,9 @@ export class MatrixController {
   @Get('procesar-polizas/:id')
   async procesarPolizas(@Param('id', ParseIntPipe) id: number) {
     return this.matrixService.procesar_polizas(id);
+  }
+  @Delete('/:id')
+  async deleteMatrix(@Param('id', ParseIntPipe) id: number) {
+    return this.matrixService.deleteMatriz(id);
   }
 }

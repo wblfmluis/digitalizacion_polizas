@@ -457,6 +457,16 @@ export class MatrixService {
       errors,
     };
   }
+
+  async deleteMatriz(idmatriz: number) {
+    await this.db
+      .delete(schema.poliza)
+      .where(eq(schema.poliza.idmatriz, idmatriz));
+    await this.db.delete(schema.matriz).where(eq(schema.matriz.id, idmatriz));
+    return {
+      message: 'Matriz eliminada con éxito',
+    };
+  }
 }
 
 const confDbToXlsSchema = z.record(z.string(), z.string().min(1));
