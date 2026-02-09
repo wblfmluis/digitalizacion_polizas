@@ -40,13 +40,15 @@ export class AppwriteService {
     name?: string,
   ): Promise<Models.User<Models.Preferences>> {
     try {
-      return await this.users.create(
+      const user = await this.users.create(
         ID.unique(),
         email,
         undefined, // phone
         password,
         name || email,
       );
+      await this.updateUserLabel(user.$id, ['newUser']);
+      return user;
     } catch (error) {
       if (error.code === 409) {
         throw new ConflictException({
