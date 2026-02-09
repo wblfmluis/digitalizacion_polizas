@@ -7,6 +7,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { MatrixModule } from './matrix/matrix.module';
 import { PoliciesModule } from './policies/policies.module';
 import { EventosModule } from './eventos/eventos.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { EventosModule } from './eventos/eventos.module';
     MatrixModule,
     PoliciesModule,
     EventosModule,
+    ReportsModule,
   ],
   controllers: [],
   providers: [],

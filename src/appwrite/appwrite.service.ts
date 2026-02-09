@@ -58,6 +58,15 @@ export class AppwriteService {
     }
   }
 
+  async updateUserLabel(userId: string, label: string[]) {
+    try {
+      await this.users.updateLabels(userId, label);
+    } catch (error) {
+      this.logger.error(`Error updating user label: ${error.message}`);
+      throw error;
+    }
+  }
+
   // Obtener un usuario por su ID
   async getUserById(userId: string): Promise<Models.User<Models.Preferences>> {
     try {
