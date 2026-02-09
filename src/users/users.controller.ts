@@ -1,9 +1,21 @@
-import { Controller, Delete, Get, Param, Post, Request } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Request,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
+import { AppwriteService } from '../appwrite/appwrite.service';
 
 @Controller('user')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly appwriteService: AppwriteService,
+  ) {}
 
   @Get()
   async findAll(): Promise<Record<string, any>> {
@@ -19,5 +31,16 @@ export class UsersController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return await this.usersService.remove(id);
+  }
+
+  @Post(':id/label')
+  async updateUserLabel(@Param('id') userId: string, @Request() req: any) {
+    const { label } = req.body;
+    if (!Array.isArray(label)) {
+      throw new BadRequestException({
+        message: 'label debe ser un array',
+      });
+    }
+    return await this.appwriteService.updateUserLabel(userId, label);
   }
 }
