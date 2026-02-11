@@ -1,10 +1,18 @@
 import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
-import { Client, Users, ID, Models, Query, Storage } from 'node-appwrite'; // Importamos Query y Models
+import {
+  Client,
+  ID,
+  Models,
+  Query,
+  Storage,
+  Tokens,
+  Users,
+} from 'node-appwrite'; // Importamos Query y Models
 import { InputFile } from 'node-appwrite/file';
 import { DRIZZLE } from '../database/database.module';
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import * as schema from '../../drizzle/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { EventosService } from '../eventos/eventos.service';
 
 @Injectable()
@@ -13,6 +21,7 @@ export class AppwriteService {
   private client: Client;
   private users: Users;
   private storage: Storage;
+  private token: Tokens;
 
   constructor(
     @Inject(DRIZZLE) private db: MySql2Database<typeof schema>,
@@ -30,7 +39,7 @@ export class AppwriteService {
 
     this.users = new Users(this.client);
     this.storage = new Storage(this.client);
-    this.logger.log('Appwrite service initialized');
+    this.token = new Tokens(this.client);
   }
 
   // Crear un nuevo usuario
@@ -242,6 +251,22 @@ export class AppwriteService {
       this.logger.error(
         `Error fetching labels for user ${userId}: ${error?.message ?? 'Unknown error'}`,
       );
+      throw error;
+    }
+  }
+
+  async generateFileToken(bucketId: string, fileId: string) {
+    try {
+      return await this.token.createFileToken(
+        bucketId,
+        fileId,
+        new Date(
+          new Date().getTime() +
+            parseInt(process.env.TOKEN_LIFE_MINS ?? '10') * 60 * 1000,
+        ).toISOString(),
+      );
+    } catch (error) {
+      this.logger.error(`Error generating file token: ${error.message}`, error);
       throw error;
     }
   }
