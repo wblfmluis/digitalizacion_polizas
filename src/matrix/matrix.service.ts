@@ -221,9 +221,7 @@ export class MatrixService {
         schema.cEjercicio,
         eq(schema.matriz.idejercicio, schema.cEjercicio.id),
       )
-      .where(
-        and(eq(schema.matriz.createdBy, user), eq(schema.matriz.status, 1)),
-      );
+      .where(eq(schema.matriz.status, 1));
   }
 
   async getMatrixById(id: number) {
