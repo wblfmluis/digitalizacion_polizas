@@ -8,7 +8,7 @@ export const UserCookie = createParamDecorator(
     if (cookie) {
       open_cookie = JSON.parse(cookie);
     }
-    if (open_cookie.decoded_jwt) {
+    if (open_cookie?.decoded_jwt) {
       return open_cookie.decoded_jwt.userId;
     } else {
       return 'system';
@@ -23,7 +23,7 @@ export const UserJwt = createParamDecorator(
     if (cookie) {
       open_cookie = JSON.parse(cookie);
     }
-    if (open_cookie.jwt) {
+    if (open_cookie?.jwt) {
       return open_cookie.jwt;
     } else {
       return null;
