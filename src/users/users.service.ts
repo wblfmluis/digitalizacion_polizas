@@ -10,8 +10,9 @@ export class UsersService {
   async createUser(
     email: string,
     password: string,
+    name: string,
   ): Promise<Record<string, any>> {
-    const response = await this.appwrite.createUser(email, password);
+    const response = await this.appwrite.createUser(email, password, name);
     return {
       userId: response.$id,
     };

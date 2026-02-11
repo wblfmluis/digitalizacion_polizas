@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Request,
 } from '@nestjs/common';
@@ -24,8 +25,8 @@ export class UsersController {
 
   @Post()
   async createUser(@Request() req: any): Promise<Record<string, any>> {
-    const { email, password } = req.body;
-    return await this.usersService.createUser(email, password);
+    const { email, password, name } = req.body;
+    return await this.usersService.createUser(email, password, name);
   }
 
   @Delete(':id')
@@ -42,5 +43,10 @@ export class UsersController {
       });
     }
     return await this.appwriteService.updateUserLabel(userId, label);
+  }
+
+  @Patch('confirm/:userId')
+  async confirmUser(@Param('userId') userId: string) {
+    return await this.appwriteService.confirmAccount(userId);
   }
 }

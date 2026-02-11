@@ -223,4 +223,26 @@ export class AppwriteService {
       throw error;
     }
   }
+
+  async confirmAccount(userId) {
+    try {
+      const user = await this.users.get(userId);
+      const userLabels = user.labels ?? [];
+      if (userLabels.length !== 0) {
+        const index = userLabels.findIndex((label) => label === 'newUser');
+        if (index !== -1) {
+          userLabels.splice(index, 1);
+        }
+      }
+      await this.updateUserLabel(userId, userLabels);
+      return {
+        message: 'Usuario confirmado',
+      };
+    } catch (error: any) {
+      this.logger.error(
+        `Error fetching labels for user ${userId}: ${error?.message ?? 'Unknown error'}`,
+      );
+      throw error;
+    }
+  }
 }
