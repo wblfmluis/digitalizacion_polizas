@@ -4,7 +4,10 @@ import { Models } from 'node-appwrite';
 export const UserCookie = createParamDecorator(
   (open_cookie: AppwriteSession, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    open_cookie = request.cookies['appwrite-user-session'] || 'system';
+    const cookie = request.cookies['appwrite-user-session'];
+    if (cookie) {
+      open_cookie = JSON.parse(cookie);
+    }
     if (open_cookie.decoded_jwt) {
       return open_cookie.decoded_jwt.userId;
     } else {
@@ -16,11 +19,14 @@ export const UserCookie = createParamDecorator(
 export const UserJwt = createParamDecorator(
   (open_cookie: AppwriteSession, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    open_cookie = request.cookies['appwrite-user-session'] || 'system';
+    const cookie = request.cookies['appwrite-user-session'];
+    if (cookie) {
+      open_cookie = JSON.parse(cookie);
+    }
     if (open_cookie.jwt) {
       return open_cookie.jwt;
     } else {
-      return 'system';
+      return null;
     }
   },
 );
