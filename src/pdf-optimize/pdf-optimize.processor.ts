@@ -1,0 +1,177 @@
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job } from 'bullmq';
+import { promises as fs } from 'node:fs';
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { Logger } from '@nestjs/common';
+import { AppwriteService } from '../appwrite/appwrite.service';
+import os from 'node:os';
+
+type PdfProfile = 'screen' | 'ebook' | 'printer' | 'prepress';
+
+const ALLOWED_PROFILES = new Set<PdfProfile>([
+  'screen',
+  'ebook',
+  'printer',
+  'prepress',
+]);
+
+function normalizeProfile(input: unknown): PdfProfile {
+  if (typeof input !== 'string') return 'ebook';
+  const value = input.trim().toLowerCase();
+  if (ALLOWED_PROFILES.has(value as PdfProfile)) return value as PdfProfile;
+  return 'ebook';
+}
+
+@Processor('pdf-optimize')
+export class PdfOptimizeProcessor extends WorkerHost {
+  private readonly logger = new Logger(PdfOptimizeProcessor.name);
+  constructor(private readonly appwrite: AppwriteService) {
+    super();
+  }
+
+  async process(
+    job: Job<{
+      policyId: string;
+      bucketId: string;
+      originalFileId: string;
+      profile?: unknown;
+    }>,
+  ) {
+    const startedAt = Date.now();
+
+    const { policyId, bucketId, originalFileId } = job.data;
+    const p = job.data.profile;
+    const profile = normalizeProfile(job.data.profile);
+
+    if (job.data.profile && job.data.profile !== profile) {
+      this.logger.warn(
+        `Job ${job.id}: profile inválido (${String(p)}) → usando "${profile}"`,
+      );
+    }
+
+    this.logger.log(
+      `Job ${job.id}: START policyId=${policyId} originalFileId=${originalFileId} profile=${profile}`,
+    );
+
+    // 1) status=PROCESSING en DB
+    // 2) download desde Appwrite -> /tmp/input.pdf
+    // 3) correr ghostscript -> /tmp/output.pdf
+    // 4) upload output a Appwrite -> optimizedFileId
+    // 5) status=OPTIMIZED + métricas
+
+    const tmpDir = path.join(__dirname, '..', '..') + '/temp';
+    this.logger.log(`Job ${job.id}: tmpDir=${tmpDir}`);
+    const inputPath = path.join(tmpDir, `${originalFileId}.input.pdf`);
+    const outputPath = path.join(tmpDir, `${originalFileId}.optimized.pdf`);
+
+    try {
+      // download inputPath ...
+      const file = await this.appwrite.getFileForDownload(
+        bucketId,
+        originalFileId,
+        'system',
+      );
+      const inputBuffer = Buffer.isBuffer(file.buffer)
+        ? file.buffer
+        : Buffer.from(file.buffer);
+
+      await fs.writeFile(inputPath, inputBuffer);
+
+      this.logger.log(
+        `Descargado desde Appwrite y escrito a tmp: ${inputPath} (${inputBuffer.length} bytes)`,
+      );
+      this.logger.debug(`Job ${job.id}: running Ghostscript...`);
+      await runGhostscript({
+        inputPath,
+        outputPath,
+        profile,
+        timeoutMs: 120_000,
+        onStderrChunk: (chunk) => {
+          // útil para debug, pero puede ser ruidoso. Lo dejamos como debug.
+          this.logger.debug(`Job ${job.id} gs: ${chunk}`);
+        },
+      });
+
+      const outStat = await fs.stat(outputPath);
+      this.logger.log(`Job ${job.id}: output size=${outStat.size} bytes`);
+
+      if (outStat.size < 1024) {
+        throw new Error(
+          'Output PDF demasiado pequeño; posible fallo de optimización',
+        );
+      }
+
+      // upload outputPath -> optimizedFileId ...
+      const optimizedFileId = '...';
+
+      const durationMs = Date.now() - startedAt;
+      this.logger.log(
+        `Job ${job.id}: OK optimizedFileId=${optimizedFileId} durationMs=${durationMs}`,
+      );
+
+      // update DB: OPTIMIZED, optimizedFileId, sizes, ratio, duration
+      return { optimizedFileId };
+    } catch (err: any) {
+      this.logger.error(
+        `Job ${job.id}: FAILED policyId=${policyId} originalFileId=${originalFileId} error=${err?.message ?? String(err)}`,
+        err?.stack,
+      );
+      throw err; // importante: para que BullMQ marque el job como failed y aplique reintentos
+    } finally {
+      // limpieza best-effort
+      //await Promise.allSettled([fs.unlink(inputPath), fs.unlink(outputPath)]);
+      this.logger.debug(`Job ${job.id}: cleanup done`);
+    }
+  }
+}
+
+function runGhostscript(opts: {
+  inputPath: string;
+  outputPath: string;
+  profile: PdfProfile;
+  timeoutMs: number;
+  onStderrChunk?: (chunk: string) => void;
+}) {
+  return new Promise<void>((resolve, reject) => {
+    const args = [
+      '-sDEVICE=pdfwrite',
+      '-dCompatibilityLevel=1.4',
+      `-dPDFSETTINGS=/${opts.profile}`,
+      '-dNOPAUSE',
+      '-dBATCH',
+      '-dQUIET',
+      `-sOutputFile=${opts.outputPath}`,
+      opts.inputPath,
+    ];
+
+    const child = spawn('gs', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error(`Ghostscript timeout (${opts.timeoutMs}ms)`));
+    }, opts.timeoutMs);
+
+    let stderr = '';
+    child.stderr.on('data', (d) => {
+      const chunk = d.toString();
+      stderr += chunk;
+      opts.onStderrChunk?.(chunk.slice(0, 500));
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (code === 0) return resolve();
+      reject(
+        new Error(
+          `Ghostscript exit code ${code}. stderr: ${stderr.slice(0, 2000)}`,
+        ),
+      );
+    });
+  });
+}

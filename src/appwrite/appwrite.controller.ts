@@ -14,6 +14,6 @@ export class AppwriteController {
     @Param('bucketId') bucketId: string,
     @Param('fileId') fileId: string,
   ): Promise<ResourceToken> {
-    return await this.appwriteService.generateFileToken(bucketId, fileId);
+    return await this.appwriteService.generateFileToken(bucketId, fileId, user);
   }
 }

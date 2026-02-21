@@ -8,6 +8,10 @@ import { MatrixModule } from './matrix/matrix.module';
 import { PoliciesModule } from './policies/policies.module';
 import { EventosModule } from './eventos/eventos.module';
 import { ReportsModule } from './reports/reports.module';
+import { QueueModule } from './queue/queue.module';
+import { PdfOptimizeService } from './pdf-optimize/pdf-optimize.service';
+import { PdfOptimizeModule } from './pdf-optimize/pdf-optimize.module';
+import { WorkerModule } from './worker/worker.module';
 
 @Module({
   imports: [
@@ -20,8 +24,11 @@ import { ReportsModule } from './reports/reports.module';
     PoliciesModule,
     EventosModule,
     ReportsModule,
+    QueueModule,
+    PdfOptimizeModule,
+    WorkerModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [PdfOptimizeService],
 })
 export class AppModule {}
