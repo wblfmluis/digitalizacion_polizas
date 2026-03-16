@@ -3,9 +3,13 @@ import { Job } from 'bullmq';
 import { promises as fs } from 'node:fs';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { AppwriteService } from '../appwrite/appwrite.service';
 import os from 'node:os';
+import { DRIZZLE } from '../database/database.module';
+import { MySql2Database } from 'drizzle-orm/mysql2';
+import * as schema from '../../drizzle/schema';
+import { eq } from 'drizzle-orm';
 
 type PdfProfile = 'screen' | 'ebook' | 'printer' | 'prepress';
 
@@ -26,7 +30,10 @@ function normalizeProfile(input: unknown): PdfProfile {
 @Processor('pdf-optimize')
 export class PdfOptimizeProcessor extends WorkerHost {
   private readonly logger = new Logger(PdfOptimizeProcessor.name);
-  constructor(private readonly appwrite: AppwriteService) {
+  constructor(
+    private readonly appwrite: AppwriteService,
+    @Inject(DRIZZLE) private db: MySql2Database<typeof schema>,
+  ) {
     super();
   }
 
@@ -67,6 +74,12 @@ export class PdfOptimizeProcessor extends WorkerHost {
 
     try {
       // download inputPath ...
+      await this.db
+        .update(schema.archivoMetadata)
+        .set({
+          fileState: 'PROCESSING',
+        })
+        .where(eq(schema.archivoMetadata.fileId, originalFileId));
       const file = await this.appwrite.getFileForDownload(
         bucketId,
         originalFileId,
@@ -109,8 +122,32 @@ export class PdfOptimizeProcessor extends WorkerHost {
       this.logger.log(
         `Job ${job.id}: OK optimizedFileId=${optimizedFileId} durationMs=${durationMs}`,
       );
-
-      // update DB: OPTIMIZED, optimizedFileId, sizes, ratio, duration
+      //Aqui cargar el archivo a appwrite
+      const file_buffer = await fs.readFile(outputPath);
+      const file_metadata = await this.db
+        .select()
+        .from(schema.archivoMetadata)
+        .where(eq(schema.archivoMetadata.fileId, originalFileId));
+      if (!file_metadata) {
+        throw new Error(
+          `File metadata not found for fileId: ${originalFileId}`,
+        );
+      }
+      const saveToAppwrite = await this.appwrite.uploadFile(
+        file_buffer,
+        file_metadata[0].nombre || originalFileId + '.pdf',
+        bucketId,
+        file_metadata[0].mimetype || 'application/pdf',
+      );
+      await this.db
+        .update(schema.archivoMetadata)
+        .set({
+          fileId: saveToAppwrite.$id,
+          optimizedSize: file_buffer.length,
+          fileState: 'OPTIMIZED',
+          durationMs: durationMs,
+        })
+        .where(eq(schema.archivoMetadata.fileId, originalFileId));
       return { optimizedFileId };
     } catch (err: any) {
       this.logger.error(
@@ -120,7 +157,7 @@ export class PdfOptimizeProcessor extends WorkerHost {
       throw err; // importante: para que BullMQ marque el job como failed y aplique reintentos
     } finally {
       // limpieza best-effort
-      //await Promise.allSettled([fs.unlink(inputPath), fs.unlink(outputPath)]);
+      await Promise.allSettled([fs.unlink(inputPath), fs.unlink(outputPath)]);
       this.logger.debug(`Job ${job.id}: cleanup done`);
     }
   }

@@ -187,6 +187,7 @@ export class PoliciesService {
               fileId: saveToAppwrite.$id,
               bucketId: bucketId,
               paginas: pages,
+              fileState: 'UPLOADED',
             };
             const [insert_file_metadata, value] = await this.db
               .insert(schema.archivoMetadata)
@@ -416,7 +417,7 @@ export class PoliciesService {
             : fileId;
         const safeName = makeUniqueZipName(baseName, usedNames);
 
-        // Agrega como Buffer (para muchos archivos grandes, lo ideal es stream, pero depende de tu AppwriteService)
+        // Agrega como Buffer
         archive.append(downloaded.buffer, {
           name: safeName,
         });
