@@ -27,4 +27,4 @@ COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
 USER node
 EXPOSE 3000
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/src/main.worker.js"]
