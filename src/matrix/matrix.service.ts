@@ -382,7 +382,7 @@ export class MatrixService {
           }),
           concepto: String(row[confDbToXls['4']] ?? '').trim(),
           descripcion: String(row[confDbToXls['5']] ?? '').trim(),
-          cuentaContable: String(row[confDbToXls['6']] ?? '').trim(),
+          cuentaContable: getCellString(row, confDbToXls['6']),
           referencia: String(row[confDbToXls['7']] ?? '').trim(),
           cargo: toMySqlDecimal2(row[confDbToXls['8']]),
           abono: toMySqlDecimal2(row[confDbToXls['9']]),
@@ -394,9 +394,10 @@ export class MatrixService {
 
         // validación mínima ejemplo:
         if (!mapped.numero) throw new Error('Campo número poliza vacío');
+        /*
         if (!mapped.cuentaContable)
           throw new Error('Campo cuentaContable vacío');
-
+         */
         polizas.push(mapped);
       } catch (e: any) {
         const excelRowNumber = i + 2; // 1=headers, datos empiezan en 2
@@ -574,4 +575,8 @@ function toMySqlDecimal2(value: unknown): string {
   if (!Number.isFinite(n)) return '0.00';
 
   return n.toFixed(2);
+}
+
+function getCellString(row: Record<string, any>, header?: string): string {
+  return String(header ? (row[header] ?? '') : '').trim();
 }
