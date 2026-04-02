@@ -39,7 +39,8 @@ export class PdfOptimizeProcessor extends WorkerHost {
 
   async process(
     job: Job<{
-      policyId: string;
+      archivoMetadataId: number;
+      policyId?: number;
       bucketId: string;
       originalFileId: string;
       profile?: unknown;
@@ -47,7 +48,8 @@ export class PdfOptimizeProcessor extends WorkerHost {
   ) {
     const startedAt = Date.now();
 
-    const { policyId, bucketId, originalFileId } = job.data;
+    const { archivoMetadataId, policyId, bucketId, originalFileId } = job.data;
+
     const p = job.data.profile;
     const profile = normalizeProfile(job.data.profile);
 
@@ -58,11 +60,10 @@ export class PdfOptimizeProcessor extends WorkerHost {
     }
 
     this.logger.log(
-      `Job ${job.id}: START policyId=${policyId} originalFileId=${originalFileId} profile=${profile}`,
+      `Job ${job.id}: START archivoMetadataId=${archivoMetadataId} policyId=${policyId ?? 'n/a'} originalFileId=${originalFileId} profile=${profile}`,
     );
 
     // 1) status=PROCESSING en DB
-    // 2) download desde Appwrite -> /tmp/input.pdf
     // 3) correr ghostscript -> /tmp/output.pdf
     // 4) upload output a Appwrite -> optimizedFileId
     // 5) status=OPTIMIZED + métricas
@@ -73,18 +74,19 @@ export class PdfOptimizeProcessor extends WorkerHost {
     const outputPath = path.join(tmpDir, `${originalFileId}.optimized.pdf`);
 
     try {
-      // download inputPath ...
       await this.db
         .update(schema.archivoMetadata)
         .set({
           fileState: 'PROCESSING',
         })
-        .where(eq(schema.archivoMetadata.fileId, originalFileId));
+        .where(eq(schema.archivoMetadata.id, archivoMetadataId));
+
       const file = await this.appwrite.getFileForDownload(
         bucketId,
         originalFileId,
         'system',
       );
+
       const inputBuffer = Buffer.isBuffer(file.buffer)
         ? file.buffer
         : Buffer.from(file.buffer);
@@ -95,13 +97,13 @@ export class PdfOptimizeProcessor extends WorkerHost {
         `Descargado desde Appwrite y escrito a tmp: ${inputPath} (${inputBuffer.length} bytes)`,
       );
       this.logger.debug(`Job ${job.id}: running Ghostscript...`);
+
       await runGhostscript({
         inputPath,
         outputPath,
         profile,
         timeoutMs: 120_000,
         onStderrChunk: (chunk) => {
-          // útil para debug, pero puede ser ruidoso. Lo dejamos como debug.
           this.logger.debug(`Job ${job.id} gs: ${chunk}`);
         },
       });
@@ -115,48 +117,60 @@ export class PdfOptimizeProcessor extends WorkerHost {
         );
       }
 
-      // upload outputPath -> optimizedFileId ...
-      const optimizedFileId = '...';
-
       const durationMs = Date.now() - startedAt;
-      this.logger.log(
-        `Job ${job.id}: OK optimizedFileId=${optimizedFileId} durationMs=${durationMs}`,
-      );
-      //Aqui cargar el archivo a appwrite
-      const file_buffer = await fs.readFile(outputPath);
-      const file_metadata = await this.db
+      const fileBuffer = await fs.readFile(outputPath);
+
+      const [fileMetadata] = await this.db
         .select()
         .from(schema.archivoMetadata)
-        .where(eq(schema.archivoMetadata.fileId, originalFileId));
-      if (!file_metadata) {
+        .where(eq(schema.archivoMetadata.id, archivoMetadataId))
+        .limit(1);
+
+      if (!fileMetadata) {
         throw new Error(
-          `File metadata not found for fileId: ${originalFileId}`,
+          `File metadata not found for archivoMetadataId: ${archivoMetadataId}`,
         );
       }
+
       const saveToAppwrite = await this.appwrite.uploadFile(
-        file_buffer,
-        file_metadata[0].nombre || originalFileId + '.pdf',
+        fileBuffer,
+        fileMetadata.nombre || originalFileId + '.pdf',
         bucketId,
-        file_metadata[0].mimetype || 'application/pdf',
+        fileMetadata.mimetype || 'application/pdf',
       );
+
       await this.db
         .update(schema.archivoMetadata)
         .set({
           fileId: saveToAppwrite.$id,
-          optimizedSize: file_buffer.length,
+          optimizedSize: fileBuffer.length,
           fileState: 'OPTIMIZED',
           durationMs: durationMs,
         })
-        .where(eq(schema.archivoMetadata.fileId, originalFileId));
-      return { optimizedFileId };
+        .where(eq(schema.archivoMetadata.id, archivoMetadataId));
+
+      this.logger.log(
+        `Job ${job.id}: OK archivoMetadataId=${archivoMetadataId} optimizedFileId=${saveToAppwrite.$id} durationMs=${durationMs}`,
+      );
+
+      return { optimizedFileId: saveToAppwrite.$id };
     } catch (err: any) {
       this.logger.error(
-        `Job ${job.id}: FAILED policyId=${policyId} originalFileId=${originalFileId} error=${err?.message ?? String(err)}`,
+        `Job ${job.id}: FAILED archivoMetadataId=${archivoMetadataId} policyId=${policyId ?? 'n/a'} originalFileId=${originalFileId} error=${err?.message ?? String(err)}`,
         err?.stack,
       );
-      throw err; // importante: para que BullMQ marque el job como failed y aplique reintentos
+
+      await this.db
+        .update(schema.archivoMetadata)
+        .set({
+          fileState: 'UPLOADED',
+        })
+        .where(eq(schema.archivoMetadata.id, archivoMetadataId));
+
+      throw err;
     } finally {
       // limpieza best-effort
+      await Promise.allSettled([fs.unlink(inputPath), fs.unlink(outputPath)]);
       await Promise.allSettled([fs.unlink(inputPath), fs.unlink(outputPath)]);
       this.logger.debug(`Job ${job.id}: cleanup done`);
     }

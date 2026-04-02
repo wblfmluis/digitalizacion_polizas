@@ -12,6 +12,7 @@ import { QueueModule } from './queue/queue.module';
 import { PdfOptimizeService } from './pdf-optimize/pdf-optimize.service';
 import { PdfOptimizeModule } from './pdf-optimize/pdf-optimize.module';
 import { WorkerModule } from './worker/worker.module';
+import { PdfOptimizeRecoveryService } from './pdf-optimize/pdf-optimize-recovery.service';
 
 @Module({
   imports: [
@@ -29,6 +30,6 @@ import { WorkerModule } from './worker/worker.module';
     WorkerModule,
   ],
   controllers: [],
-  providers: [PdfOptimizeService],
+  providers: [PdfOptimizeService, PdfOptimizeRecoveryService],
 })
 export class AppModule {}
