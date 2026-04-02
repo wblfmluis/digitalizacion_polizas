@@ -7,12 +7,7 @@ import { BullModule } from '@nestjs/bullmq';
       connection: {
         host: process.env.REDIS_HOST,
         port: Number(process.env.REDIS_PORT ?? 6379),
-        ...(process.env.REDIS_USERNAME?.trim()
-          ? { username: process.env.REDIS_USERNAME }
-          : {}),
-        ...(process.env.REDIS_PASSWORD?.trim()
-          ? { password: process.env.REDIS_PASSWORD }
-          : {}),
+        password: process.env.REDIS_PASSWORD,
       },
     }),
     BullModule.registerQueue({
