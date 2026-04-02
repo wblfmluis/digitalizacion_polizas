@@ -74,6 +74,7 @@ export class PdfOptimizeProcessor extends WorkerHost {
     const outputPath = path.join(tmpDir, `${originalFileId}.optimized.pdf`);
 
     try {
+      await fs.mkdir(tmpDir, { recursive: true });
       await this.db
         .update(schema.archivoMetadata)
         .set({
