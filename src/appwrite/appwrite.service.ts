@@ -255,7 +255,7 @@ export class AppwriteService {
     }
   }
 
-  async generateFileToken(bucketId: string, fileId: string) {
+  async generateFileToken(bucketId: string, fileId: string, user: string) {
     try {
       return await this.token.createFileToken(
         bucketId,

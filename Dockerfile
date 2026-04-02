@@ -21,10 +21,10 @@ USER node
 # Production stage
 FROM node:20-alpine AS production
 WORKDIR /usr/src/app
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl ghostscript
 ENV TZ=America/Mexico_City
 COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
 USER node
 EXPOSE 3000
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/src/main.worker.js"]

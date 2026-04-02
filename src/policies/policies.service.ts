@@ -29,6 +29,8 @@ import { normalizeToMySqlDate } from '../utils/date';
 import type { Response } from 'express';
 import archiver from 'archiver';
 import { PDFDocument } from 'pdf-lib';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 const mxn = new Intl.NumberFormat('es-MX', {
   style: 'currency',
@@ -59,6 +61,7 @@ type PolizasStatsResult = {
 export class PoliciesService {
   private readonly logger = new Logger(PoliciesService.name);
   constructor(
+    @InjectQueue('pdf-optimize') private readonly pdfOptimizeQueue: Queue,
     @Inject(DRIZZLE) private db: MySql2Database<typeof schema>,
     private readonly appwriteService: AppwriteService,
     private readonly eventosService: EventosService,
@@ -184,6 +187,7 @@ export class PoliciesService {
               fileId: saveToAppwrite.$id,
               bucketId: bucketId,
               paginas: pages,
+              fileState: 'UPLOADED',
             };
             const [insert_file_metadata, value] = await this.db
               .insert(schema.archivoMetadata)
@@ -204,6 +208,19 @@ export class PoliciesService {
                   usuario: user,
                 },
                 user,
+              );
+              const policyId = db_policie_row.id;
+              const originalFileId = file_to_insert.fileId;
+              const bucketId = file_to_insert.bucketId;
+              await this.pdfOptimizeQueue.add(
+                'optimize',
+                { policyId, bucketId, originalFileId, profile: 'ebook' },
+                {
+                  attempts: 3,
+                  backoff: { type: 'exponential', delay: 5_000 },
+                  removeOnComplete: 1000,
+                  removeOnFail: 5000,
+                },
               );
             }
           } else {
@@ -400,7 +417,7 @@ export class PoliciesService {
             : fileId;
         const safeName = makeUniqueZipName(baseName, usedNames);
 
-        // Agrega como Buffer (para muchos archivos grandes, lo ideal es stream, pero depende de tu AppwriteService)
+        // Agrega como Buffer
         archive.append(downloaded.buffer, {
           name: safeName,
         });

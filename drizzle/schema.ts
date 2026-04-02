@@ -26,6 +26,9 @@ export const archivoMetadata = mysqlTable(
     bucketId: varchar('bucket_id', { length: 100 }),
     fileId: varchar('file_id', { length: 100 }).notNull(),
     paginas: int(),
+    fileState: varchar('file_state', { length: 20 }),
+    optimizedSize: int(),
+    durationMs: int(),
     status: tinyint().default(1),
     createdAt: datetime('created_at', { mode: 'string' }).default(
       sql`(CURRENT_TIMESTAMP)`,
