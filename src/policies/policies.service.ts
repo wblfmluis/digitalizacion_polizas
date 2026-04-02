@@ -210,16 +210,24 @@ export class PoliciesService {
                 user,
               );
               const policyId = db_policie_row.id;
+              const archivoMetadataId = Number(inserted_id);
               const originalFileId = file_to_insert.fileId;
               const bucketId = file_to_insert.bucketId;
               await this.pdfOptimizeQueue.add(
                 'optimize',
-                { policyId, bucketId, originalFileId, profile: 'ebook' },
+                {
+                  archivoMetadataId,
+                  policyId,
+                  bucketId,
+                  originalFileId,
+                  profile: 'ebook',
+                },
                 {
                   attempts: 3,
                   backoff: { type: 'exponential', delay: 5_000 },
                   removeOnComplete: 1000,
                   removeOnFail: 5000,
+                  jobId: `pdf-optimize-${archivoMetadataId}`,
                 },
               );
             }
