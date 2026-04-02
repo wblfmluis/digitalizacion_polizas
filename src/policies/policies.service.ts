@@ -220,7 +220,7 @@ export class PoliciesService {
                   policyId,
                   bucketId,
                   originalFileId,
-                  profile: 'ebook',
+                  profile: 'screen',
                 },
                 {
                   attempts: 3,
