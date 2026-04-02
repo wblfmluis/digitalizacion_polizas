@@ -118,7 +118,7 @@ export class PdfOptimizeProcessor extends WorkerHost {
       const outStat = await fs.stat(outputPath);
       this.logger.log(`Job ${job.id}: output size=${outStat.size} bytes`);
 
-      if (outStat.size < 1024) {
+      if (outStat.size < 50024) {
         throw new Error(
           'Output PDF demasiado pequeño; posible fallo de optimización',
         );
