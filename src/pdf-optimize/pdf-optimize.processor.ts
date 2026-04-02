@@ -27,6 +27,13 @@ function normalizeProfile(input: unknown): PdfProfile {
   return 'ebook';
 }
 
+function getTempBaseDir() {
+  const configured = process.env.PDF_OPTIMIZE_TMP_DIR?.trim();
+  return configured && configured.length > 0
+    ? configured
+    : path.join('/tmp', 'dp_backend', 'pdf-optimize');
+}
+
 @Processor('pdf-optimize')
 export class PdfOptimizeProcessor extends WorkerHost {
   private readonly logger = new Logger(PdfOptimizeProcessor.name);
@@ -59,22 +66,20 @@ export class PdfOptimizeProcessor extends WorkerHost {
       );
     }
 
+    const tmpDir = getTempBaseDir();
     this.logger.log(
-      `Job ${job.id}: START archivoMetadataId=${archivoMetadataId} policyId=${policyId ?? 'n/a'} originalFileId=${originalFileId} profile=${profile}`,
+      `Job ${job.id}: START archivoMetadataId=${archivoMetadataId} policyId=${policyId ?? 'n/a'} originalFileId=${originalFileId} profile=${profile} tmpDir=${tmpDir}`,
     );
 
-    // 1) status=PROCESSING en DB
-    // 3) correr ghostscript -> /tmp/output.pdf
-    // 4) upload output a Appwrite -> optimizedFileId
-    // 5) status=OPTIMIZED + métricas
-
-    const tmpDir = path.join(__dirname, '..', '..') + '/temp';
-    this.logger.log(`Job ${job.id}: tmpDir=${tmpDir}`);
     const inputPath = path.join(tmpDir, `${originalFileId}.input.pdf`);
     const outputPath = path.join(tmpDir, `${originalFileId}.optimized.pdf`);
 
     try {
       await fs.mkdir(tmpDir, { recursive: true });
+
+      // Verificación rápida de que el directorio es escribible
+      await fs.access(tmpDir);
+
       await this.db
         .update(schema.archivoMetadata)
         .set({
@@ -97,6 +102,7 @@ export class PdfOptimizeProcessor extends WorkerHost {
       this.logger.log(
         `Descargado desde Appwrite y escrito a tmp: ${inputPath} (${inputBuffer.length} bytes)`,
       );
+
       this.logger.debug(`Job ${job.id}: running Ghostscript...`);
 
       await runGhostscript({
@@ -170,8 +176,6 @@ export class PdfOptimizeProcessor extends WorkerHost {
 
       throw err;
     } finally {
-      // limpieza best-effort
-      await Promise.allSettled([fs.unlink(inputPath), fs.unlink(outputPath)]);
       await Promise.allSettled([fs.unlink(inputPath), fs.unlink(outputPath)]);
       this.logger.debug(`Job ${job.id}: cleanup done`);
     }
