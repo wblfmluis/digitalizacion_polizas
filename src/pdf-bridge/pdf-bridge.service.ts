@@ -32,6 +32,8 @@ export class PdfBridgeService {
   }
 
   async updateFile(file: Express.Multer.File, body: Record<string, any>) {
+    this.logger.debug('Updating file with body:', body);
+    this.logger.debug('File:', file);
     if (!file || !file.buffer || !body?.fileId) {
       this.logger.error('File is required: Not recieved file or fileId');
       throw new BadRequestException('File is required');
@@ -40,6 +42,7 @@ export class PdfBridgeService {
     const exist_metadata = await this.db.query.archivoMetadata.findFirst({
       where: eq(schema.archivoMetadata.fileId, fileId),
     });
+    this.logger.debug('Exist metadata:', exist_metadata);
     if (!exist_metadata) {
       this.logger.error(`File not found in database: ${fileId}`);
       throw new BadRequestException('File not found in database');
@@ -60,6 +63,7 @@ export class PdfBridgeService {
       exist_metadata.bucketId,
       exist_metadata.mimetype,
     );
+    this.logger.debug('Save to appwrite:', saveToAppwrite);
     if (saveToAppwrite?.$id) {
       await this.db
         .update(schema.archivoMetadata)
