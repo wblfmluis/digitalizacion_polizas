@@ -180,10 +180,9 @@ export class PoliciesService {
               bucketId,
               file.mimetype,
             );
-            await writeFile(
-              './temp/' + saveToAppwrite.$id + '.pdf',
-              file.buffer,
-            );
+            const TEMP_DIR = process.env.TEMP_DIR ?? '/app/temp';
+            const filePath = path.join(TEMP_DIR, `${saveToAppwrite.$id}.pdf`);
+            await writeFile(filePath, file.buffer);
             const pages = await count_pdf_pages(file.buffer);
             const file_to_insert = {
               nombre: original_file_name,
