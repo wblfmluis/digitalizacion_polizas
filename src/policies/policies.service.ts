@@ -226,8 +226,8 @@ export class PoliciesService {
                 'optimize',
                 {
                   fileId: saveToAppwrite.$id,
-                  inputPath: filePath,
-                  outputPath: optimizedFilePath,
+                  inputPath: `./temp/${saveToAppwrite.$id}.pdf`,
+                  outputPath: `./temp/optimized-${saveToAppwrite.$id}.pdf`,
                 },
                 {
                   attempts: 3,

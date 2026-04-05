@@ -66,6 +66,7 @@ export class PdfBridgeService {
           fileId: saveToAppwrite?.$id,
           updatedBy: 'PDF OPTIMIZER',
           fileState: 'OPTIMIZED',
+          optimizedSize: file.size,
         })
         .where(eq(schema.archivoMetadata.id, exist_metadata.id));
       await this.appwriteService.deleteFile(exist_metadata.bucketId, fileId);
