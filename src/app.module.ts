@@ -9,10 +9,7 @@ import { PoliciesModule } from './policies/policies.module';
 import { EventosModule } from './eventos/eventos.module';
 import { ReportsModule } from './reports/reports.module';
 import { QueueModule } from './queue/queue.module';
-import { PdfOptimizeService } from './pdf-optimize/pdf-optimize.service';
-import { PdfOptimizeModule } from './pdf-optimize/pdf-optimize.module';
-import { WorkerModule } from './worker/worker.module';
-import { PdfOptimizeRecoveryService } from './pdf-optimize/pdf-optimize-recovery.service';
+import { PdfBridgeModule } from './pdf-bridge/pdf-bridge.module';
 
 @Module({
   imports: [
@@ -26,10 +23,9 @@ import { PdfOptimizeRecoveryService } from './pdf-optimize/pdf-optimize-recovery
     EventosModule,
     ReportsModule,
     QueueModule,
-    PdfOptimizeModule,
-    WorkerModule,
+    PdfBridgeModule,
   ],
   controllers: [],
-  providers: [PdfOptimizeService, PdfOptimizeRecoveryService],
+  providers: [],
 })
 export class AppModule {}

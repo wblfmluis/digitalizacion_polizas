@@ -232,7 +232,17 @@ export class AppwriteService {
       throw error;
     }
   }
-
+  async deleteFile(bucketId: string, fileId: string) {
+    try {
+      await this.storage.deleteFile(bucketId, fileId);
+      this.logger.log(`File deleted successfully: ${fileId}`);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error deleting file: ${errorMessage}`, errorStack);
+    }
+  }
   async confirmAccount(userId) {
     try {
       const user = await this.users.get(userId);

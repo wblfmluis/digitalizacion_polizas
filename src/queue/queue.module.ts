@@ -11,7 +11,7 @@ import { BullModule } from '@nestjs/bullmq';
       },
     }),
     BullModule.registerQueue({
-      name: 'pdf-optimize',
+      name: 'pdf-queue',
     }),
   ],
   exports: [BullModule],

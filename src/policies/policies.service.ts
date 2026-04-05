@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { writeFile } from 'fs/promises';
 import { DRIZZLE } from '../database/database.module';
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import * as schema from '../../drizzle/schema';
@@ -61,7 +62,7 @@ type PolizasStatsResult = {
 export class PoliciesService {
   private readonly logger = new Logger(PoliciesService.name);
   constructor(
-    @InjectQueue('pdf-optimize') private readonly pdfOptimizeQueue: Queue,
+    @InjectQueue('pdf-queue') private readonly pdfOptimizeQueue: Queue,
     @Inject(DRIZZLE) private db: MySql2Database<typeof schema>,
     private readonly appwriteService: AppwriteService,
     private readonly eventosService: EventosService,
@@ -179,6 +180,10 @@ export class PoliciesService {
               bucketId,
               file.mimetype,
             );
+            await writeFile(
+              './temp/' + saveToAppwrite.$id + '.pdf',
+              file.buffer,
+            );
             const pages = await count_pdf_pages(file.buffer);
             const file_to_insert = {
               nombre: original_file_name,
@@ -216,11 +221,9 @@ export class PoliciesService {
               await this.pdfOptimizeQueue.add(
                 'optimize',
                 {
-                  archivoMetadataId,
-                  policyId,
-                  bucketId,
-                  originalFileId,
-                  profile: 'screen',
+                  fileId: saveToAppwrite.$id,
+                  inputPath: `./temp/${saveToAppwrite.$id}.pdf`,
+                  outputPath: `./temp/optimized-${saveToAppwrite.$id}.pdf`,
                 },
                 {
                   attempts: 3,

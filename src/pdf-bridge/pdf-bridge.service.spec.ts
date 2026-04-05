@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PdfOptimizeService } from './pdf-optimize.service';
+import { PdfBridgeService } from './pdf-bridge.service';
 
-describe('PdfOptimizeService', () => {
-  let service: PdfOptimizeService;
+describe('PdfBridgeService', () => {
+  let service: PdfBridgeService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PdfOptimizeService],
+      providers: [PdfBridgeService],
     }).compile();
 
-    service = module.get<PdfOptimizeService>(PdfOptimizeService);
+    service = module.get<PdfBridgeService>(PdfBridgeService);
   });
 
   it('should be defined', () => {
