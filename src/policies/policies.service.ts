@@ -182,6 +182,11 @@ export class PoliciesService {
             );
             const TEMP_DIR = process.env.TEMP_DIR ?? '/app/temp';
             const filePath = path.join(TEMP_DIR, `${saveToAppwrite.$id}.pdf`);
+            const optimizedFilePath = path.join(
+              TEMP_DIR,
+              `optimized-${saveToAppwrite.$id}.pdf`,
+            );
+
             await writeFile(filePath, file.buffer);
             const pages = await count_pdf_pages(file.buffer);
             const file_to_insert = {
@@ -221,8 +226,8 @@ export class PoliciesService {
                 'optimize',
                 {
                   fileId: saveToAppwrite.$id,
-                  inputPath: `./temp/${saveToAppwrite.$id}.pdf`,
-                  outputPath: `./temp/optimized-${saveToAppwrite.$id}.pdf`,
+                  inputPath: filePath,
+                  outputPath: optimizedFilePath,
                 },
                 {
                   attempts: 3,
