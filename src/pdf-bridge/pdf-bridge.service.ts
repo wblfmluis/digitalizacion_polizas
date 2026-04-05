@@ -31,11 +31,12 @@ export class PdfBridgeService {
       .where(eq(schema.archivoMetadata.fileId, fileId));
   }
 
-  async updateFile(file: Express.Multer.File, fileId: string) {
-    if (!file || !file.buffer || fileId) {
+  async updateFile(file: Express.Multer.File, body: Record<string, any>) {
+    if (!file || !file.buffer || !body?.fileId) {
       this.logger.error('File is required: Not recieved file or fileId');
       throw new BadRequestException('File is required');
     }
+    const fileId = body.fileId;
     const exist_metadata = await this.db.query.archivoMetadata.findFirst({
       where: eq(schema.archivoMetadata.fileId, fileId),
     });
