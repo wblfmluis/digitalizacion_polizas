@@ -153,6 +153,52 @@ export class PoliciesService {
         totalPaginasArchivos += it.archivo_metadata?.paginas ?? 0;
       }
     }
+    const cleanedItems = items.map((it) => {
+      const {
+        createdAt,
+        updatedAt,
+        createdBy,
+        updatedBy,
+        deletedAt,
+        deletedBy,
+        ...polizaSinFechas
+      } = it.poliza ?? {};
+      return {
+        ...it,
+        poliza: polizaSinFechas,
+      };
+    });
+    const cleanedEjercicio = cleanedItems.map((it) => {
+      const {
+        createdAt,
+        updatedAt,
+        createdBy,
+        updatedBy,
+        deletedAt,
+        deletedBy,
+        ...ejercicioSinFechas
+      } = it.c_ejercicio ?? {};
+      return {
+        ...it,
+        c_ejercicio: ejercicioSinFechas,
+      };
+    });
+    const cleanedMatriz = cleanedEjercicio.map((it) => {
+      const {
+        createdAt,
+        updatedAt,
+        createdBy,
+        updatedBy,
+        deletedAt,
+        deletedBy,
+        ...matrizSinFechas
+      } = it.matriz ?? {};
+      return {
+        ...it,
+        matriz: matrizSinFechas,
+      };
+    });
+
     await this.eventosService.logEvent(
       {
         idcTipoAccion: 3,
@@ -162,7 +208,7 @@ export class PoliciesService {
       user,
     );
     return {
-      items,
+      items: cleanedMatriz,
       meta: {
         page,
         pageSize,
