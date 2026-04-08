@@ -128,6 +128,10 @@ export class PoliciesService {
           eq(schema.poliza.idejercicio, schema.cEjercicio.id),
         )
         .innerJoin(schema.matriz, eq(schema.poliza.idmatriz, schema.matriz.id))
+        .leftJoin(
+          schema.archivoMetadata,
+          eq(schema.poliza.idarchivoMetadata, schema.archivoMetadata.id),
+        )
         .where(where)
         .orderBy(desc(schema.poliza.id))
         .limit(pageSize)
