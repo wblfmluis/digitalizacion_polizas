@@ -147,6 +147,12 @@ export class PoliciesService {
         .then((r) => r[0]),
     ]);
     const total = Number(totalRow?.total ?? 0);
+    let totalPaginasArchivos = 0;
+    for (const it of items) {
+      if (it?.archivo_metadata) {
+        totalPaginasArchivos += it.archivo_metadata?.paginas ?? 0;
+      }
+    }
     await this.eventosService.logEvent(
       {
         idcTipoAccion: 3,
@@ -162,6 +168,9 @@ export class PoliciesService {
         pageSize,
         total,
         totalPages: Math.ceil(total / pageSize),
+      },
+      paginasArchivos: {
+        total: totalPaginasArchivos,
       },
     };
   }
