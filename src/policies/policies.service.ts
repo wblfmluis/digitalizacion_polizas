@@ -116,10 +116,10 @@ export class PoliciesService {
         conditions.push(searchCondition);
       }
     }
-
+    //Enviar parametros de busqueda
     const where = conditions.length ? and(...conditions) : sql`true`;
 
-    const [items, totalRow] = await Promise.all([
+    const [items, totalRow, filePagesCount] = await Promise.all([
       this.db
         .select()
         .from(schema.poliza)
@@ -145,10 +145,23 @@ export class PoliciesService {
         .from(schema.poliza)
         .where(where)
         .then((r) => r[0]),
+
+      this.db
+        .select()
+        .from(schema.poliza)
+        .leftJoin(
+          schema.archivoMetadata,
+          eq(schema.poliza.idarchivoMetadata, schema.archivoMetadata.id),
+        )
+        .where(where)
+        .orderBy(
+          sql`CASE WHEN ${schema.poliza.idarchivoMetadata} IS NOT NULL THEN 0 ELSE 1 END`,
+          desc(schema.poliza.id),
+        ),
     ]);
     const total = Number(totalRow?.total ?? 0);
     let totalPaginasArchivos = 0;
-    for (const it of items) {
+    for (const it of filePagesCount) {
       if (it?.archivo_metadata) {
         totalPaginasArchivos += it.archivo_metadata?.paginas ?? 0;
       }
