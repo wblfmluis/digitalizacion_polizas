@@ -133,7 +133,10 @@ export class PoliciesService {
           eq(schema.poliza.idarchivoMetadata, schema.archivoMetadata.id),
         )
         .where(where)
-        .orderBy(desc(schema.poliza.id))
+        .orderBy(
+          sql`CASE WHEN ${schema.poliza.idarchivoMetadata} IS NOT NULL THEN 0 ELSE 1 END`,
+          desc(schema.poliza.id),
+        )
         .limit(pageSize)
         .offset(offset),
 
