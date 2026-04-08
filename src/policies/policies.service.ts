@@ -69,7 +69,7 @@ export class PoliciesService {
   ) {}
 
   async getPolicies(params: Record<string, any>, user: string) {
-    const { idejercicio, idmatriz, archivo, q } = params;
+    const { idejercicio, idmatriz, archivo, q, fechaInicio, fechaFin } = params;
     const { page, pageSize, offset } = normalizePagination(params);
 
     const conditions: SQL[] = [];
@@ -86,6 +86,16 @@ export class PoliciesService {
       }
       if (parseInt(archivo) === 0) {
         conditions.push(isNull(schema.poliza.idarchivoMetadata));
+      }
+    }
+    if (fechaInicio && fechaFin) {
+      const dateCondition = and(
+        gte(schema.poliza.fecha, fechaInicio),
+        lte(schema.poliza.fecha, fechaFin),
+      );
+
+      if (dateCondition) {
+        conditions.push(dateCondition);
       }
     }
     const qTrim = typeof q === 'string' ? q.trim() : '';

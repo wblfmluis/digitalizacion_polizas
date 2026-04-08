@@ -33,6 +33,8 @@ export class PoliciesController {
     @Query('idmatriz') idmatriz?: string,
     @Query('archivo') archivo?: string,
     @Query('busqueda') q?: string,
+    @Query('fechaInicio') fechaInicio?: string,
+    @Query('fechaFin') fechaFin?: string,
   ) {
     return this.policiesService.getPolicies(
       {
@@ -43,6 +45,8 @@ export class PoliciesController {
         idmatriz: idmatriz,
         archivo: archivo,
         q: q,
+        fechaInicio: fechaInicio,
+        fechaFin: fechaFin,
       },
       user,
     );
