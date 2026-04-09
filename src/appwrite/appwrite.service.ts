@@ -14,6 +14,7 @@ import { MySql2Database } from 'drizzle-orm/mysql2';
 import * as schema from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { EventosService } from '../eventos/eventos.service';
+import { Readable } from 'node:stream';
 
 @Injectable()
 export class AppwriteService {
@@ -279,5 +280,56 @@ export class AppwriteService {
       this.logger.error(`Error generating file token: ${error.message}`, error);
       throw error;
     }
+  }
+
+  //ZIP
+  async getFileInfo(bucketId: string, fileId: string) {
+    try {
+      return await this.storage.getFile(bucketId, fileId);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error getting file info: ${errorMessage}`, errorStack);
+      throw error;
+    }
+  }
+
+  async openFileStream(bucketId: string, fileId: string): Promise<Readable> {
+    const endpoint = (
+      process.env.APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1'
+    ).replace(/\/$/, '');
+
+    const projectId = process.env.APPWRITE_PROJECT_ID;
+    const apiKey = process.env.APPWRITE_API_KEY;
+
+    if (!projectId || !apiKey) {
+      throw new Error('APPWRITE_PROJECT_ID o APPWRITE_API_KEY no configurados');
+    }
+
+    const url = `${endpoint}/storage/buckets/${encodeURIComponent(bucketId)}/files/${encodeURIComponent(fileId)}/download`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-Appwrite-Project': projectId,
+        'X-Appwrite-Key': apiKey,
+      },
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(
+        `No se pudo abrir stream de Appwrite. status=${response.status}`,
+      );
+    }
+
+    return Readable.fromWeb(response.body as any);
+  }
+
+  sanitizeZipEntryName(name: string) {
+    return name
+      .replace(/[/\\?%*:|"<>]/g, '_')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 }

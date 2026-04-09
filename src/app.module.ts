@@ -10,6 +10,8 @@ import { EventosModule } from './eventos/eventos.module';
 import { ReportsModule } from './reports/reports.module';
 import { QueueModule } from './queue/queue.module';
 import { PdfBridgeModule } from './pdf-bridge/pdf-bridge.module';
+import { ZipModule } from './zip/zip.module';
+import { DownloadsModule } from './downloads/downloads.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { PdfBridgeModule } from './pdf-bridge/pdf-bridge.module';
     ReportsModule,
     QueueModule,
     PdfBridgeModule,
+    ZipModule,
+    DownloadsModule,
   ],
   controllers: [],
   providers: [],
