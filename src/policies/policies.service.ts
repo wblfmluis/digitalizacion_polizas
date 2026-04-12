@@ -242,6 +242,7 @@ export class PoliciesService {
     if (!file || !file?.path) {
       throw new Error('Archivo no encontrado');
     }
+    this.logger.debug(`Subiendo archivo de poliza: ${file.originalname}`);
     const original_file_name = file.originalname;
     const { name, ext, base } = path.parse(original_file_name);
     const db_policie = await this.db
