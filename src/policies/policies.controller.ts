@@ -93,7 +93,7 @@ export class PoliciesController {
             .replace(/_+/g, '_')
             .replace(/^_+|_+$/g, '');
 
-          cb(null, `${safeBase}-${Date.now()}${ext}`);
+          cb(null, `${safeBase}${ext}`);
         },
       }),
       limits: { fileSize: 5000 * 1024 * 1024 },
