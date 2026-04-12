@@ -1,27 +1,27 @@
 import {
   BadRequestException,
-  Injectable,
   Inject,
+  Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import * as fsp from 'fs/promises';
+import { getPdfPageCountFromPath } from '../utils/pdfinfo.util';
 import { DRIZZLE } from '../database/database.module';
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import * as schema from '../../drizzle/schema';
 import {
   and,
-  eq,
-  like,
-  gte,
-  lte,
-  inArray,
-  sql,
-  type SQL,
   desc,
+  eq,
+  gte,
+  inArray,
   isNotNull,
   isNull,
+  like,
+  lte,
   or,
+  sql,
+  type SQL,
 } from 'drizzle-orm';
 import { AppwriteService } from '../appwrite/appwrite.service';
 import { EventosService } from '../eventos/eventos.service';
@@ -29,7 +29,6 @@ import path from 'node:path';
 import { normalizeToMySqlDate } from '../utils/date';
 import type { Response } from 'express';
 import archiver from 'archiver';
-import { PDFDocument } from 'pdf-lib';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import * as fs from 'node:fs';
@@ -275,7 +274,7 @@ export class PoliciesService {
             );
 
             //await writeFile(filePath, file.buffer);
-            const pages = await count_pdf_pages(file.buffer);
+            const pages = await count_pdf_pages(file.path);
             const file_to_insert = {
               nombre: original_file_name,
               mimetype: file.mimetype,
@@ -592,11 +591,12 @@ function makeUniqueZipName(original: string, used: Map<string, number>) {
   return `${base} (${next})${ext}`;
 }
 
-async function count_pdf_pages(
-  pdf_buffer: string | ArrayBuffer | Uint8Array<ArrayBufferLike>,
-) {
-  const pdfDoc = await PDFDocument.load(pdf_buffer, {
-    ignoreEncryption: true,
-  });
-  return pdfDoc.getPageCount();
+async function count_pdf_pages(pdf_path: string) {
+  try {
+    const pdfinfo = await getPdfPageCountFromPath(pdf_path);
+    return pdfinfo.pages;
+  } catch (e) {
+    console.error('Error al obtener el número de páginas del PDF:', e);
+    return 0;
+  }
 }
