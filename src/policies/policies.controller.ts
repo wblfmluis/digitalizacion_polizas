@@ -84,7 +84,8 @@ export class PoliciesController {
         filename: (req, file, cb) => {
           const ext = path.extname(file.originalname);
           const base = path.basename(file.originalname, ext);
-          const safeBase = base
+          const safeBase = base;
+          /*
             .toLowerCase()
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
@@ -92,6 +93,8 @@ export class PoliciesController {
             .replace(/\s+/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_+|_+$/g, '');
+
+             */
 
           cb(null, `${safeBase}${ext}`);
         },
