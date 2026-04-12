@@ -15,30 +15,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 export class PdfBridgeController {
   constructor(private readonly pdfBridgeService: PdfBridgeService) {}
   @Post('update-optimized-pdf')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      // 10 MB
-      fileFilter: (req, file, cb) => {
-        const allowedMime = new Set(['application/pdf']);
-
-        if (!allowedMime.has(file.mimetype)) {
-          return cb(
-            new BadRequestException(
-              'Archivo no válido. Es necesario cargar un archivo PDF (.pdf).',
-            ) as any,
-            false,
-          );
-        }
-
-        cb(null, true);
-      },
-    }),
-  )
-  uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body: any) {
-    if (!file) {
-      throw new BadRequestException('No se ha proporcionado ningún archivo.');
-    }
-    return this.pdfBridgeService.updateFile(file, body);
+  uploadFile(@Body() body: any) {
+    return this.pdfBridgeService.updateFile(body);
   }
 
   @Patch('update-file-state')

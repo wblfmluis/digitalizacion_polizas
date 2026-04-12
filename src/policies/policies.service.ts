@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { writeFile } from 'fs/promises';
+import * as fsp from 'fs/promises';
 import { DRIZZLE } from '../database/database.module';
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import * as schema from '../../drizzle/schema';
@@ -32,6 +32,7 @@ import archiver from 'archiver';
 import { PDFDocument } from 'pdf-lib';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import * as fs from 'node:fs';
 
 const mxn = new Intl.NumberFormat('es-MX', {
   style: 'currency',
@@ -239,8 +240,8 @@ export class PoliciesService {
     user: string,
     jwt: string,
   ) {
-    if (!file || !file?.buffer) {
-      new Error('Archivo no encontrado');
+    if (!file || !file?.path) {
+      throw new Error('Archivo no encontrado');
     }
     const original_file_name = file.originalname;
     const { name, ext, base } = path.parse(original_file_name);
@@ -259,20 +260,21 @@ export class PoliciesService {
           const detalle_matriz = matriz[0];
           const bucketId = detalle_matriz.bucketId;
           if (bucketId) {
-            const saveToAppwrite = await this.appwriteService.uploadFile(
-              file.buffer,
-              original_file_name,
-              bucketId,
-              file.mimetype,
-            );
+            const saveToAppwrite =
+              await this.appwriteService.uploadFileFromPath(
+                file.path,
+                original_file_name,
+                bucketId,
+                file.mimetype,
+              );
             const TEMP_DIR = process.env.TEMP_DIR ?? '/app/temp';
-            const filePath = path.join(TEMP_DIR, `${saveToAppwrite.$id}.pdf`);
+            const filePath = path.join(TEMP_DIR, `${file.originalname}`);
             const optimizedFilePath = path.join(
               TEMP_DIR,
-              `optimized-${saveToAppwrite.$id}.pdf`,
+              `optimized-${file.originalname}`,
             );
 
-            await writeFile(filePath, file.buffer);
+            //await writeFile(filePath, file.buffer);
             const pages = await count_pdf_pages(file.buffer);
             const file_to_insert = {
               nombre: original_file_name,
@@ -311,8 +313,9 @@ export class PoliciesService {
                 'optimize',
                 {
                   fileId: saveToAppwrite.$id,
-                  inputPath: `./temp/${saveToAppwrite.$id}.pdf`,
-                  outputPath: `./temp/optimized-${saveToAppwrite.$id}.pdf`,
+                  fileName: file.originalname,
+                  inputPath: `./temp/${file.originalname}`,
+                  outputPath: `./temp/optimized-${file.originalname}`,
                 },
                 {
                   attempts: 3,
@@ -324,11 +327,13 @@ export class PoliciesService {
               );
             }
           } else {
+            fs.unlinkSync(process.env.TEMP_DIR + '/' + file.originalname);
             throw new BadRequestException({
               message: 'No hay bucketId asignado a la matriz',
             });
           }
         } else {
+          fs.unlinkSync(process.env.TEMP_DIR + '/' + file.originalname);
           throw new NotFoundException({
             message: 'No se encontró el la matriz asociada',
           });

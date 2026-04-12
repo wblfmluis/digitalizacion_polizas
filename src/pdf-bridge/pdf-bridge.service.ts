@@ -9,6 +9,8 @@ import { MySql2Database } from 'drizzle-orm/mysql2';
 import * as schema from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { AppwriteService } from '../appwrite/appwrite.service';
+import * as fsp from 'fs/promises';
+import * as fs from 'node:fs';
 
 @Injectable()
 export class PdfBridgeService {
@@ -31,13 +33,9 @@ export class PdfBridgeService {
       .where(eq(schema.archivoMetadata.fileId, fileId));
   }
 
-  async updateFile(file: Express.Multer.File, body: Record<string, any>) {
+  async updateFile(body: Record<string, any>) {
     this.logger.debug('Updating file with body:', body);
-    this.logger.debug('File:', file);
-    if (!file || !file.buffer || !body?.fileId) {
-      this.logger.error('File is required: Not recieved file or fileId');
-      throw new BadRequestException('File is required');
-    }
+
     const fileId = body.fileId;
     const exist_metadata = await this.db.query.archivoMetadata.findFirst({
       where: eq(schema.archivoMetadata.fileId, fileId),
@@ -57,11 +55,14 @@ export class PdfBridgeService {
       );
       throw new BadRequestException('File metadata incomplete');
     }
-    const saveToAppwrite = await this.appwriteService.uploadFile(
-      file.buffer,
-      exist_metadata.nombre,
+    const saveToAppwrite = await this.appwriteService.uploadFileFromPath(
+      process.env.TEMP_DIR + '/' + 'optimized-' + body.fileName,
+      'optimized-' + body.fileName,
       exist_metadata.bucketId,
-      exist_metadata.mimetype,
+      'application/pdf',
+    );
+    const meta_file = await fsp.stat(
+      process.env.TEMP_DIR + '/' + 'optimized-' + body.fileName,
     );
     this.logger.debug('Save to appwrite:', saveToAppwrite);
     if (saveToAppwrite?.$id) {
@@ -71,11 +72,13 @@ export class PdfBridgeService {
           fileId: saveToAppwrite?.$id,
           updatedBy: 'PDF OPTIMIZER',
           fileState: 'OPTIMIZED',
-          optimizedSize: file.size,
+          optimizedSize: meta_file.size,
         })
         .where(eq(schema.archivoMetadata.id, exist_metadata.id));
       await this.appwriteService.deleteFile(exist_metadata.bucketId, fileId);
     }
+    fs.unlinkSync(process.env.TEMP_DIR + '/' + 'optimized-' + body.fileName);
+    fs.unlinkSync(process.env.TEMP_DIR + '/' + body.fileName);
     return {
       fileId: saveToAppwrite?.$id ?? fileId,
       message: 'Done',

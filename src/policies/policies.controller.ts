@@ -18,6 +18,9 @@ import {
 } from '../common/decorators/user-cookie.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Express, Response } from 'express';
+import path from 'node:path';
+import * as fs from 'node:fs';
+import { diskStorage } from 'multer';
 
 @Controller('policies')
 export class PoliciesController {
@@ -70,7 +73,30 @@ export class PoliciesController {
   @Post('file')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 5000 * 1024 * 1024 }, // 10 MB
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const tempDir = process.env.TEMP_DIR ?? '/app/temp/uploads';
+          if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+          }
+          cb(null, tempDir);
+        },
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname);
+          const base = path.basename(file.originalname, ext);
+          const safeBase = base
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^\w\s]/g, '')
+            .replace(/\s+/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_+|_+$/g, '');
+
+          cb(null, `${safeBase}-${Date.now()}${ext}`);
+        },
+      }),
+      limits: { fileSize: 5000 * 1024 * 1024 },
       fileFilter: (req, file, cb) => {
         const allowedMime = new Set(['application/pdf']);
 

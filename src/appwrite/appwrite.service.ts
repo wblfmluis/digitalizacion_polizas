@@ -14,6 +14,7 @@ import { MySql2Database } from 'drizzle-orm/mysql2';
 import * as schema from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { EventosService } from '../eventos/eventos.service';
+import * as fs from 'node:fs';
 
 @Injectable()
 export class AppwriteService {
@@ -180,6 +181,18 @@ export class AppwriteService {
       this.logger.error(`Error uploading file: ${errorMessage}`, errorStack);
       throw error;
     }
+  }
+  async uploadFileFromPath(
+    filePath: string,
+    fileName: string,
+    bucketId: string,
+    mimeType: string,
+  ) {
+    return await this.storage.createFile(
+      bucketId,
+      ID.unique(),
+      InputFile.fromPath(filePath, fileName),
+    );
   }
   async getFileForDownload(
     bucketId: string,
