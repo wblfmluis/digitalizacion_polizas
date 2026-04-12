@@ -16,6 +16,7 @@ export class PdfBridgeController {
   constructor(private readonly pdfBridgeService: PdfBridgeService) {}
   @Post('update-optimized-pdf')
   uploadFile(@Body() body: any) {
+    console.log(body);
     return this.pdfBridgeService.updateFile(body);
   }
 
