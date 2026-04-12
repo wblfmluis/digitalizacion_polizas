@@ -70,7 +70,7 @@ export class PoliciesController {
   @Post('file')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 100 * 1024 * 1024 }, // 10 MB
+      limits: { fileSize: 5000 * 1024 * 1024 }, // 10 MB
       fileFilter: (req, file, cb) => {
         const allowedMime = new Set(['application/pdf']);
 
