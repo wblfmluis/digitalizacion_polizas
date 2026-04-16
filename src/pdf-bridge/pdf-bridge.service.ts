@@ -96,7 +96,7 @@ export class PdfBridgeService {
           fileId: saveToAppwrite?.$id,
           updatedBy: 'PDF OPTIMIZER',
           fileState: 'OPTIMIZED',
-          optimizedSize: meta_file.size,
+          optimizedSize: bytesToMB(meta_file.size),
         })
         .where(eq(schema.archivoMetadata.id, exist_metadata.id));
       await this.appwriteService.deleteFile(exist_metadata.bucketId, fileId);
@@ -109,3 +109,4 @@ export class PdfBridgeService {
     };
   }
 }
+const bytesToMB = (bytes: number): number => Math.round(bytes / 1024 ** 2);

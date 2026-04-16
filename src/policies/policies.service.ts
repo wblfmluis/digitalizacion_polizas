@@ -302,7 +302,7 @@ export class PoliciesService {
             const file_to_insert = {
               nombre: original_file_name,
               mimetype: file.mimetype,
-              size: file.size,
+              size: bytesToMB(file.size),
               fileId: saveToAppwrite.$id,
               bucketId: bucketId,
               paginas: pages,
@@ -624,3 +624,4 @@ async function count_pdf_pages(pdf_path: string) {
     return 0;
   }
 }
+const bytesToMB = (bytes: number): number => Math.round(bytes / 1024 ** 2);
