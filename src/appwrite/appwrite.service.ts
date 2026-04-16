@@ -17,6 +17,7 @@ import { EventosService } from '../eventos/eventos.service';
 import * as fs from 'node:fs';
 import path from 'node:path';
 import FormData from 'form-data';
+import axios from 'axios';
 
 @Injectable()
 export class AppwriteService {
@@ -214,13 +215,14 @@ export class AppwriteService {
     const stat = await fs.promises.stat(filePath);
     const totalSize = stat.size;
 
-    const chunkSize = 5 * 1024 * 1024; // 5 MB
+    const chunkSize = 5 * 1024 * 1024;
     let start = 0;
     let uploadedFileId: string | null = null;
     let lastResponse: any = null;
 
     while (start < totalSize) {
       const end = Math.min(start + chunkSize, totalSize) - 1;
+      const currentChunkSize = end - start + 1;
 
       const stream = fs.createReadStream(filePath, {
         start,
@@ -229,24 +231,24 @@ export class AppwriteService {
 
       const form = new FormData();
       form.append('fileId', resolvedFileId);
+      form.append('file', stream, {
+        filename: resolvedFilename,
+        knownLength: currentChunkSize,
+        contentType: 'application/octet-stream',
+      });
 
-      // solo para el primer request
-      if (start === 0) {
-        form.append('file', stream, {
-          filename: resolvedFilename,
-          knownLength: end - start + 1,
+      const formLength = await new Promise<number>((resolve, reject) => {
+        form.getLength((err, length) => {
+          if (err) return reject(err);
+          resolve(length);
         });
-      } else {
-        form.append('file', stream, {
-          filename: resolvedFilename,
-          knownLength: end - start + 1,
-        });
-      }
+      });
 
-      const headers: Record<string, string> = {
+      const headers: Record<string, string | number> = {
         'X-Appwrite-Project': projectId,
         'X-Appwrite-Key': apiKey,
         'Content-Range': `bytes ${start}-${end}/${totalSize}`,
+        'Content-Length': formLength,
         ...form.getHeaders(),
       };
 
@@ -254,24 +256,24 @@ export class AppwriteService {
         headers['x-appwrite-id'] = uploadedFileId;
       }
 
-      const response = await fetch(
+      const response = await axios.post(
         `${endpoint}/storage/buckets/${encodeURIComponent(bucketId)}/files`,
+        form,
         {
-          method: 'POST',
           headers,
-          body: form as any,
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          validateStatus: () => true,
         },
       );
 
-      const text = await response.text();
-
-      if (!response.ok) {
+      if (response.status < 200 || response.status >= 300) {
         throw new Error(
-          `Error subiendo chunk ${start}-${end}: ${response.status} ${text}`,
+          `Error subiendo chunk ${start}-${end}: ${response.status} ${JSON.stringify(response.data)}`,
         );
       }
 
-      lastResponse = JSON.parse(text);
+      lastResponse = response.data;
 
       if (!uploadedFileId && lastResponse?.$id) {
         uploadedFileId = lastResponse.$id;

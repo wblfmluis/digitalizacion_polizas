@@ -29,6 +29,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "archiver": "^7.0.1",
+    "axios": "^1.15.0",
     "bullmq": "^5.69.3",
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.1",
