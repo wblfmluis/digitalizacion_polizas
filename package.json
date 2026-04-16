@@ -33,6 +33,7 @@
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.1",
     "drizzle-zod": "^0.8.3",
+    "form-data": "^4.0.5",
     "format-money-js": "^1.6.3",
     "ioredis": "^5.9.3",
     "moment": "^2.30.1",
