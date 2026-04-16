@@ -260,13 +260,36 @@ export class PoliciesService {
           const detalle_matriz = matriz[0];
           const bucketId = detalle_matriz.bucketId;
           if (bucketId) {
-            const saveToAppwrite =
-              await this.appwriteService.uploadFileFromPath(
+            let saveToAppwrite: {
+              $id: any;
+              bucketId?: string;
+              $createdAt?: string;
+              $updatedAt?: string;
+              $permissions?: string[];
+              name?: string;
+              signature?: string;
+              mimeType?: string;
+              sizeOriginal?: number;
+              chunksTotal?: number;
+              chunksUploaded?: number;
+            };
+            const stat = await fs.promises.stat(file.path);
+            if (stat.size > 500 * 1024 * 1024) {
+              saveToAppwrite =
+                await this.appwriteService.uploadLargeFileFromPath(
+                  bucketId,
+                  file.path,
+                  original_file_name,
+                );
+            } else {
+              saveToAppwrite = await this.appwriteService.uploadFileFromPath(
                 file.path,
                 original_file_name,
                 bucketId,
                 file.mimetype,
               );
+            }
+
             const TEMP_DIR = process.env.TEMP_DIR ?? '/app/temp';
             const filePath = path.join(TEMP_DIR, `${file.originalname}`);
             const optimizedFilePath = path.join(

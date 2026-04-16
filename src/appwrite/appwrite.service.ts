@@ -15,6 +15,8 @@ import * as schema from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { EventosService } from '../eventos/eventos.service';
 import * as fs from 'node:fs';
+import path from 'node:path';
+import FormData from 'form-data';
 
 @Injectable()
 export class AppwriteService {
@@ -193,6 +195,96 @@ export class AppwriteService {
       ID.unique(),
       InputFile.fromPath(filePath, fileName),
     );
+  }
+  async uploadLargeFileFromPath(
+    bucketId: string,
+    filePath: string,
+    filename?: string,
+    fileId?: string,
+  ) {
+    const endpoint = (
+      process.env.APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1'
+    ).replace(/\/$/, '');
+    const projectId = String(process.env.APPWRITE_PROJECT_ID);
+    const apiKey = String(process.env.APPWRITE_API_KEY);
+
+    const resolvedFileId = fileId || ID.unique();
+    const resolvedFilename = filename || path.basename(filePath);
+
+    const stat = await fs.promises.stat(filePath);
+    const totalSize = stat.size;
+
+    const chunkSize = 5 * 1024 * 1024; // 5 MB
+    let start = 0;
+    let uploadedFileId: string | null = null;
+    let lastResponse: any = null;
+
+    while (start < totalSize) {
+      const end = Math.min(start + chunkSize, totalSize) - 1;
+
+      const stream = fs.createReadStream(filePath, {
+        start,
+        end,
+      });
+
+      const form = new FormData();
+      form.append('fileId', resolvedFileId);
+
+      // solo para el primer request
+      if (start === 0) {
+        form.append('file', stream, {
+          filename: resolvedFilename,
+          knownLength: end - start + 1,
+        });
+      } else {
+        form.append('file', stream, {
+          filename: resolvedFilename,
+          knownLength: end - start + 1,
+        });
+      }
+
+      const headers: Record<string, string> = {
+        'X-Appwrite-Project': projectId,
+        'X-Appwrite-Key': apiKey,
+        'Content-Range': `bytes ${start}-${end}/${totalSize}`,
+        ...form.getHeaders(),
+      };
+
+      if (uploadedFileId) {
+        headers['x-appwrite-id'] = uploadedFileId;
+      }
+
+      const response = await fetch(
+        `${endpoint}/storage/buckets/${encodeURIComponent(bucketId)}/files`,
+        {
+          method: 'POST',
+          headers,
+          body: form as any,
+        },
+      );
+
+      const text = await response.text();
+
+      if (!response.ok) {
+        throw new Error(
+          `Error subiendo chunk ${start}-${end}: ${response.status} ${text}`,
+        );
+      }
+
+      lastResponse = JSON.parse(text);
+
+      if (!uploadedFileId && lastResponse?.$id) {
+        uploadedFileId = lastResponse.$id;
+      }
+
+      this.logger.log(
+        `Chunk subido: ${start}-${end} de ${totalSize} (${Math.round(((end + 1) / totalSize) * 100)}%)`,
+      );
+
+      start = end + 1;
+    }
+
+    return lastResponse;
   }
   async getFileForDownload(
     bucketId: string,
