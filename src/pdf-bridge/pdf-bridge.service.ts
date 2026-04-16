@@ -55,12 +55,36 @@ export class PdfBridgeService {
       );
       throw new BadRequestException('File metadata incomplete');
     }
-    const saveToAppwrite = await this.appwriteService.uploadFileFromPath(
+    const stat = await fs.promises.stat(
       process.env.TEMP_DIR + '/' + 'optimized-' + body.fileName,
-      'optimized-' + body.fileName,
-      exist_metadata.bucketId,
-      'application/pdf',
     );
+    let saveToAppwrite: {
+      $id: any;
+      bucketId?: string;
+      $createdAt?: string;
+      $updatedAt?: string;
+      $permissions?: string[];
+      name?: string;
+      signature?: string;
+      mimeType?: string;
+      sizeOriginal?: number;
+      chunksTotal?: number;
+      chunksUploaded?: number;
+    };
+    if (stat.size > 500 * 1024 * 1024) {
+      saveToAppwrite = await this.appwriteService.uploadLargeFileFromPath(
+        exist_metadata.bucketId,
+        process.env.TEMP_DIR + '/' + 'optimized-' + body.fileName,
+        'optimized-' + body.fileName,
+      );
+    } else {
+      saveToAppwrite = await this.appwriteService.uploadFileFromPath(
+        process.env.TEMP_DIR + '/' + 'optimized-' + body.fileName,
+        'optimized-' + body.fileName,
+        exist_metadata.bucketId,
+        'application/pdf',
+      );
+    }
     const meta_file = await fsp.stat(
       process.env.TEMP_DIR + '/' + 'optimized-' + body.fileName,
     );
