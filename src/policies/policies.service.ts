@@ -248,7 +248,7 @@ export class PoliciesService {
     const db_policie = await this.db
       .select()
       .from(schema.poliza)
-      .where(eq(schema.poliza.numero, name));
+      .where(eq(schema.poliza.nomenclatura, name));
     for (const db_policie_row of db_policie) {
       if (db_policie_row.idmatriz) {
         const matriz = await this.db
