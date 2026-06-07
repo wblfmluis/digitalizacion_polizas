@@ -14,6 +14,7 @@ import {
   text,
   decimal,
   tinyint,
+  uniqueIndex,
 } from 'drizzle-orm/mysql-core';
 import { sql } from 'drizzle-orm';
 
@@ -125,6 +126,73 @@ export const entidad = mysqlTable(
     deletedBy: varchar('deleted_by', { length: 50 }),
   },
   (table) => [primaryKey({ columns: [table.id], name: 'entidad_id' })],
+);
+
+export const usuario = mysqlTable(
+  'usuario',
+  {
+    id: int().autoincrement().notNull(),
+    nombre: varchar({ length: 150 }).notNull(),
+    email: varchar({ length: 150 }).notNull(),
+    passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+    status: tinyint().default(1),
+    lastLoginAt: datetime('last_login_at', { mode: 'string' }),
+    createdAt: datetime('created_at', { mode: 'string' }).default(
+      sql`(CURRENT_TIMESTAMP)`,
+    ),
+    createdBy: varchar('created_by', { length: 50 }),
+    updatedAt: datetime('updated_at', { mode: 'string' }).default(
+      sql`(CURRENT_TIMESTAMP)`,
+    ),
+    updatedBy: varchar('updated_by', { length: 50 }),
+    deletedAt: datetime('deleted_at', { mode: 'string' }),
+    deletedBy: varchar('deleted_by', { length: 50 }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.id], name: 'usuario_id' }),
+    uniqueIndex('usuario_email_unique').on(table.email),
+  ],
+);
+
+export const rol = mysqlTable(
+  'rol',
+  {
+    id: int().autoincrement().notNull(),
+    clave: varchar({ length: 50 }).notNull(),
+    nombre: varchar({ length: 100 }).notNull(),
+    status: tinyint().default(1),
+    createdAt: datetime('created_at', { mode: 'string' }).default(
+      sql`(CURRENT_TIMESTAMP)`,
+    ),
+    createdBy: varchar('created_by', { length: 50 }),
+    updatedAt: datetime('updated_at', { mode: 'string' }).default(
+      sql`(CURRENT_TIMESTAMP)`,
+    ),
+    updatedBy: varchar('updated_by', { length: 50 }),
+    deletedAt: datetime('deleted_at', { mode: 'string' }),
+    deletedBy: varchar('deleted_by', { length: 50 }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.id], name: 'rol_id' }),
+    uniqueIndex('rol_clave_unique').on(table.clave),
+  ],
+);
+
+export const usuarioRol = mysqlTable(
+  'usuario_rol',
+  {
+    idusuario: int().notNull().references(() => usuario.id),
+    idrol: int().notNull().references(() => rol.id),
+    createdAt: datetime('created_at', { mode: 'string' }).default(
+      sql`(CURRENT_TIMESTAMP)`,
+    ),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.idusuario, table.idrol],
+      name: 'usuario_rol_pk',
+    }),
+  ],
 );
 
 export const logEventos = mysqlTable(

@@ -5,9 +5,10 @@ import { DatabaseModule } from '../database/database.module';
 import { AppwriteService } from '../appwrite/appwrite.service';
 import { EventosService } from '../eventos/eventos.service';
 import { QueueModule } from '../queue/queue.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [DatabaseModule, QueueModule],
+  imports: [DatabaseModule, QueueModule, AuthModule],
   controllers: [PoliciesController],
   providers: [PoliciesService, AppwriteService, EventosService],
 })

@@ -1,13 +1,11 @@
 import { Module } from '@nestjs/common';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
-import { AppwriteModule } from 'src/appwrite/appwrite.module';
-import { AppwriteService } from '../appwrite/appwrite.service';
-import { EventosService } from '../eventos/eventos.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [AppwriteModule],
+  imports: [AuthModule],
   controllers: [UsersController],
-  providers: [UsersService, AppwriteService, EventosService],
+  providers: [UsersService],
 })
 export class UsersModule {}

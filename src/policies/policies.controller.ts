@@ -10,25 +10,29 @@ import {
   UseInterceptors,
   Body,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { PoliciesService } from './policies.service';
-import {
-  UserJwt,
-  UserCookie,
-} from '../common/decorators/user-cookie.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Express, Response } from 'express';
 import path from 'node:path';
 import * as fs from 'node:fs';
 import { diskStorage } from 'multer';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthUser } from '../auth/types/auth-user.type';
 
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('admin', 'operador', 'consulta')
 @Controller('policies')
 export class PoliciesController {
   constructor(private readonly policiesService: PoliciesService) {}
 
   @Get()
   async getPolicies(
-    @UserCookie() user: string,
+    @CurrentUser() user: AuthUser,
     @Query('page') page: string,
     @Query('pageSize') pageSize: string,
     @Query('offset') offset: string,
@@ -51,7 +55,7 @@ export class PoliciesController {
         fechaInicio: fechaInicio,
         fechaFin: fechaFin,
       },
-      user,
+      user.email,
     );
   }
 
@@ -71,6 +75,7 @@ export class PoliciesController {
   }
 
   @Post('file')
+  @Roles('admin', 'operador')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -118,27 +123,26 @@ export class PoliciesController {
   )
   uploadPolicieFile(
     @UploadedFile() file: Express.Multer.File,
-    @UserJwt() jwt: string,
-    @UserCookie() user: string,
+    @CurrentUser() user: AuthUser,
   ) {
     if (!file) {
       throw new BadRequestException(
         'No se recibió archivo. Usa form-data con key "file".',
       );
     }
-    return this.policiesService.uploadPolicieFile(file, user, jwt);
+    return this.policiesService.uploadPolicieFile(file, user.email, '');
   }
 
   @Get('/:id')
-  async policieDetail(@Param('id') id: number, @UserCookie() user: string) {
-    return this.policiesService.policieDetail(id, user);
+  async policieDetail(@Param('id') id: number, @CurrentUser() user: AuthUser) {
+    return this.policiesService.policieDetail(id, user.email);
   }
 
   @Post('files/zip')
   async downloadZipByFileIds(
     @Body('fileIds') fileIds: string[],
     @Res() res: Response,
-    @UserCookie() user: string,
+    @CurrentUser() user: AuthUser,
   ) {
     if (!Array.isArray(fileIds) || fileIds.length === 0) {
       throw new BadRequestException('fileIds debe ser un arreglo no vacío');
@@ -146,7 +150,7 @@ export class PoliciesController {
     return this.policiesService.streamZipFromAppwriteFileIds(
       fileIds,
       res,
-      user,
+      user.email,
     );
   }
 }

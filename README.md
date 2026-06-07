@@ -31,6 +31,26 @@
 $ npm install
 ```
 
+## Auth setup
+
+La autenticación propia usa cookie HTTP-only `dp_session` y usuarios en MySQL.
+Configura estas variables antes de iniciar el backend:
+
+```bash
+AUTH_JWT_SECRET=change-me
+AUTH_JWT_EXPIRES_IN=8h
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=change-me
+ADMIN_NAME=Administrador
+```
+
+El admin inicial se crea al arrancar la app. También puedes ejecutarlo de forma
+explícita:
+
+```bash
+$ npm run seed:admin
+```
+
 ## Compile and run the project
 
 ```bash

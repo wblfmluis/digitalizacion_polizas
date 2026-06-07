@@ -1,52 +1,68 @@
 import {
-  BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
   Param,
-  Patch,
+  ParseIntPipe,
   Post,
-  Request,
+  Put,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { AppwriteService } from '../appwrite/appwrite.service';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthUser, RoleKey } from '../auth/types/auth-user.type';
 
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('admin')
 @Controller('user')
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly appwriteService: AppwriteService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  async findAll(): Promise<Record<string, any>> {
+  async findAll() {
     return await this.usersService.findAll();
   }
 
   @Post()
-  async createUser(@Request() req: any): Promise<Record<string, any>> {
-    const { email, password, name } = req.body;
-    return await this.usersService.createUser(email, password, name);
+  async createUser(@Body() body: any, @CurrentUser() user: AuthUser) {
+    return await this.usersService.createUser(body, user);
+  }
+
+  @Put(':id')
+  async updateUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return await this.usersService.updateUser(id, body, user);
+  }
+
+  @Put(':id/password')
+  async updatePassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('password') password: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return await this.usersService.updatePassword(id, password, user);
+  }
+
+  @Put(':id/roles')
+  async updateRoles(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('roles') roles: RoleKey[],
+  ) {
+    return await this.usersService.updateRoles(id, roles);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return await this.usersService.remove(id);
-  }
-
-  @Post(':id/label')
-  async updateUserLabel(@Param('id') userId: string, @Request() req: any) {
-    const { label } = req.body;
-    if (!Array.isArray(label)) {
-      throw new BadRequestException({
-        message: 'label debe ser un array',
-      });
-    }
-    return await this.appwriteService.updateUserLabel(userId, label);
-  }
-
-  @Patch('confirm/:userId')
-  async confirmUser(@Param('userId') userId: string) {
-    return await this.appwriteService.confirmAccount(userId);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return await this.usersService.remove(id, user);
   }
 }

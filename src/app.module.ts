@@ -10,11 +10,13 @@ import { EventosModule } from './eventos/eventos.module';
 import { ReportsModule } from './reports/reports.module';
 import { QueueModule } from './queue/queue.module';
 import { PdfBridgeModule } from './pdf-bridge/pdf-bridge.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
+    AuthModule,
     UsersModule,
     AppwriteModule,
     CatalogModule,

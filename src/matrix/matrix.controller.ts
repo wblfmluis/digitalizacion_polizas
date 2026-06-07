@@ -10,20 +10,24 @@ import {
   Put,
   UploadedFile,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MatrixService } from './matrix.service';
 import type { Express } from 'express';
-import {
-  UserJwt,
-  UserCookie,
-} from '../common/decorators/user-cookie.decorator';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthUser } from '../auth/types/auth-user.type';
 
+@UseGuards(AuthGuard, RolesGuard)
 @Controller('matrix')
 export class MatrixController {
   constructor(private readonly matrixService: MatrixService) {}
 
   @Post('excel/headers')
+  @Roles('admin', 'operador')
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
@@ -58,6 +62,7 @@ export class MatrixController {
   }
 
   @Post()
+  @Roles('admin', 'operador')
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
@@ -82,8 +87,7 @@ export class MatrixController {
   )
   createMatrix(
     @UploadedFile() file: Express.Multer.File,
-    @UserJwt() jwt: string,
-    @UserCookie() user: string,
+    @CurrentUser() user: AuthUser,
     @Body() data: Record<string, any>,
   ) {
     if (!file) {
@@ -92,10 +96,11 @@ export class MatrixController {
       );
     }
 
-    return this.matrixService.createMatrix(data, file, user, jwt);
+    return this.matrixService.createMatrix(data, file, user.email, '');
   }
 
   @Put('/:id')
+  @Roles('admin', 'operador')
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
@@ -120,28 +125,32 @@ export class MatrixController {
   )
   updateMatrix(
     @Param('id', ParseIntPipe) id: number,
-    @UserJwt() jwt: string,
-    @UserCookie() user: string,
+    @CurrentUser() user: AuthUser,
     @Body() data: Record<string, any>,
   ) {
-    return this.matrixService.updateMatrix(id, data, user);
+    return this.matrixService.updateMatrix(id, data, user.email);
+  }
+
+  @Get('procesar-polizas/:id')
+  @Roles('admin', 'operador')
+  async procesarPolizas(@Param('id', ParseIntPipe) id: number) {
+    return this.matrixService.procesar_polizas(id);
   }
 
   @Get('/:id')
+  @Roles('admin', 'operador', 'consulta')
   async getMatrixById(@Param('id', ParseIntPipe) id: number) {
     return this.matrixService.getMatrixById(id);
   }
 
   @Get()
-  async getMatrix(@UserCookie() user: string) {
-    return this.matrixService.getMatrix(user);
+  @Roles('admin', 'operador', 'consulta')
+  async getMatrix(@CurrentUser() user: AuthUser) {
+    return this.matrixService.getMatrix(user.email);
   }
 
-  @Get('procesar-polizas/:id')
-  async procesarPolizas(@Param('id', ParseIntPipe) id: number) {
-    return this.matrixService.procesar_polizas(id);
-  }
   @Delete('/:id')
+  @Roles('admin')
   async deleteMatrix(@Param('id', ParseIntPipe) id: number) {
     return this.matrixService.deleteMatriz(id);
   }

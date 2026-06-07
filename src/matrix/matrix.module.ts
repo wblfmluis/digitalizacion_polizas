@@ -6,9 +6,10 @@ import { AppwriteService } from '../appwrite/appwrite.service';
 import { PoliciesService } from '../policies/policies.service';
 import { EventosService } from '../eventos/eventos.service';
 import { QueueModule } from '../queue/queue.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [DatabaseModule, QueueModule],
+  imports: [DatabaseModule, QueueModule, AuthModule],
   controllers: [MatrixController],
   providers: [MatrixService, AppwriteService, PoliciesService, EventosService],
 })
