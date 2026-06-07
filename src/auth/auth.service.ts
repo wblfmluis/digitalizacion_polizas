@@ -2,6 +2,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  OnApplicationBootstrap,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -14,13 +15,17 @@ import { AuthUser, RoleKey } from './types/auth-user.type';
 import { ROLE_NAMES } from './auth.constants';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnApplicationBootstrap {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
     @Inject(DRIZZLE) private db: MySql2Database<typeof schema>,
     private readonly jwtService: JwtService,
   ) {}
+
+  async onApplicationBootstrap() {
+    await this.ensureBootstrapAdmin();
+  }
 
   async login(email: string, password: string) {
     const normalizedEmail = String(email ?? '').trim().toLowerCase();
@@ -89,13 +94,13 @@ export class AuthService {
   async ensureBootstrapAdmin() {
     await this.ensureRoles();
 
-    const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-    const password = process.env.ADMIN_PASSWORD;
-    const nombre = process.env.ADMIN_NAME?.trim() || 'Administrador';
+    const email = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+    const password = process.env.INITIAL_ADMIN_PASSWORD;
+    const nombre = process.env.INITIAL_ADMIN_NAME?.trim() || 'Administrador';
 
     if (!email || !password) {
       this.logger.warn(
-        'ADMIN_EMAIL/ADMIN_PASSWORD no definidos; se omite seed de admin',
+        'INITIAL_ADMIN_EMAIL/INITIAL_ADMIN_PASSWORD no definidos; se omite seed de admin',
       );
       return;
     }

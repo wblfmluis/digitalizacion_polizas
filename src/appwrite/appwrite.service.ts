@@ -1,13 +1,20 @@
-import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import {
   Client,
+  Health,
   ID,
   Models,
   Query,
   Storage,
   Tokens,
   Users,
-} from 'node-appwrite'; // Importamos Query y Models
+} from 'node-appwrite';
 import { InputFile } from 'node-appwrite/file';
 import { DRIZZLE } from '../database/database.module';
 import { MySql2Database } from 'drizzle-orm/mysql2';
@@ -20,7 +27,7 @@ import FormData from 'form-data';
 import axios from 'axios';
 
 @Injectable()
-export class AppwriteService {
+export class AppwriteService implements OnApplicationBootstrap {
   private readonly logger = new Logger(AppwriteService.name);
   private client: Client;
   private users: Users;
@@ -44,6 +51,20 @@ export class AppwriteService {
     this.users = new Users(this.client);
     this.storage = new Storage(this.client);
     this.token = new Tokens(this.client);
+  }
+
+  async onApplicationBootstrap() {
+    try {
+      const health = new Health(this.client);
+      await health.get();
+      this.logger.log(
+        `Appwrite connection OK — ${process.env.APPWRITE_ENDPOINT ?? 'https://cloud.appwrite.io/v1'}`,
+      );
+    } catch (err: any) {
+      this.logger.error(
+        `Appwrite no disponible (${process.env.APPWRITE_ENDPOINT}): ${err?.message}`,
+      );
+    }
   }
 
   // Crear un nuevo usuario

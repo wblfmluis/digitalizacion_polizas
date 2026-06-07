@@ -15,6 +15,13 @@
       "when": 1780338947539,
       "tag": "0001_chubby_matthew_murdock",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1780500000000,
+      "tag": "0002_missing_tables",
+      "breakpoints": true
     }
   ]
 }
