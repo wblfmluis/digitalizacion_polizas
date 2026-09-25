@@ -15,6 +15,14 @@ describe('extractPolizaNumeroFromFilename', () => {
     ).toBe('100000150');
   });
 
+  it('acepta el prefijo "DOC." con punto', () => {
+    expect(
+      extractPolizaNumeroFromFilename(
+        '92. DOC. 3000002605 YESICA DENIS MACIEL RANGEL',
+      ),
+    ).toBe('3000002605');
+  });
+
   it('es insensible a mayúsculas/minúsculas y a espacios múltiples', () => {
     expect(extractPolizaNumeroFromFilename('doc   3000000645   x')).toBe(
       '3000000645',
