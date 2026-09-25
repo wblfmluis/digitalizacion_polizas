@@ -27,6 +27,7 @@ import { AppwriteService } from '../appwrite/appwrite.service';
 import { EventosService } from '../eventos/eventos.service';
 import path from 'node:path';
 import { normalizeToMySqlDate } from '../utils/date';
+import { extractPolizaNumeroFromFilename } from '../utils/policy-filename';
 import type { Response } from 'express';
 import archiver from 'archiver';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -244,11 +245,27 @@ export class PoliciesService {
     }
     this.logger.debug(`Subiendo archivo de poliza: ${file.originalname}`);
     const original_file_name = file.originalname;
-    const { name, ext, base } = path.parse(original_file_name);
-    const db_policie = await this.db
+    const { name } = path.parse(original_file_name);
+
+    // Estrategia 1 (actual): match exacto por nomenclatura.
+    let db_policie = await this.db
       .select()
       .from(schema.poliza)
       .where(eq(schema.poliza.nomenclatura, name));
+
+    // Estrategia 2 (fallback): archivos tipo "34. DOC 3000000645 ..." -> poliza.numero.
+    if (db_policie.length === 0) {
+      const numero = extractPolizaNumeroFromFilename(name);
+      if (numero) {
+        this.logger.debug(
+          `Sin match por nomenclatura; probando numero=${numero}`,
+        );
+        db_policie = await this.db
+          .select()
+          .from(schema.poliza)
+          .where(eq(schema.poliza.numero, numero));
+      }
+    }
     for (const db_policie_row of db_policie) {
       if (db_policie_row.idmatriz) {
         const matriz = await this.db
